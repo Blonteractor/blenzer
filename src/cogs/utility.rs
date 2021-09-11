@@ -1,12 +1,12 @@
+use super::super::util;
+use chrono::{DateTime, Datelike, Month, Utc};
 use num_traits::cast::FromPrimitive;
 use serenity::framework::standard::{
     macros::{command, group},
-    CommandResult,
+    Args, CommandResult,
 };
 use serenity::model::prelude::*;
 use serenity::prelude::*;
-
-use chrono::{DateTime, Datelike, Month, Utc};
 
 fn date_to_human_readable<'a>(datetime: &'a DateTime<Utc>) -> String {
     let date = datetime.date();
@@ -38,19 +38,18 @@ fn date_to_human_readable<'a>(datetime: &'a DateTime<Utc>) -> String {
 }
 
 #[command]
-async fn info(ctx: &Context, msg: &Message) -> CommandResult {
-    let author = &msg.author;
-    let member = &msg.member(ctx).await?;
+async fn info(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let member = util::parsers::member(ctx, msg, args).await?;
 
-    let mut author_roles = match member.roles(ctx).await {
+    let mut member_roles = match member.roles(ctx).await {
         Some(roles) => roles,
         None => Vec::new(),
     };
 
-    author_roles.sort();
+    member_roles.sort();
 
-    let top_role = author_roles.last().unwrap();
-    let avatar_url = &author.avatar_url().unwrap_or(String::new());
+    let top_role = member_roles.last().unwrap();
+    let avatar_url = &member.user.avatar_url().unwrap_or(String::new());
     msg.channel_id
         .send_message(ctx, |c| {
             c.reference_message(msg).embed(|e| {
@@ -59,10 +58,10 @@ async fn info(ctx: &Context, msg: &Message) -> CommandResult {
                     .url(avatar_url)
                     .title(format!(
                         "{name}#{discrim}",
-                        name = author.name,
-                        discrim = author.discriminator
+                        name = member.user.name,
+                        discrim = member.user.discriminator
                     ))
-                    .field("ID", author.id, true)
+                    .field("ID", member.user.id, true)
                     .field(
                         "Nickname",
                         member.nick.as_ref().unwrap_or(&"NA".to_string()),
@@ -71,7 +70,7 @@ async fn info(ctx: &Context, msg: &Message) -> CommandResult {
                     .field("Top Role", top_role.mention(), true)
                     .field(
                         "Created At",
-                        date_to_human_readable(&author.created_at()),
+                        date_to_human_readable(&member.user.created_at()),
                         true,
                     )
                     .field(
@@ -80,8 +79,8 @@ async fn info(ctx: &Context, msg: &Message) -> CommandResult {
                         true,
                     )
                     .field(
-                        format!("Roles({})", author_roles.len()),
-                        author_roles
+                        format!("Roles({})", member_roles.len()),
+                        member_roles
                             .iter()
                             .rev()
                             .map(|r| r.mention().to_string())
