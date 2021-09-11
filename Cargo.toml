@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 dotenv = "0.15"
+num-traits = "0.2"
 serenity = "0.10.9"
 chrono = "0.4"
 tokio = {version= "1.10.1", features=["full"]}

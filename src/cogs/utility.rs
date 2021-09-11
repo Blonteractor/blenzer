@@ -1,3 +1,4 @@
+use num_traits::cast::FromPrimitive;
 use serenity::framework::standard::{
     macros::{command, group},
     CommandResult,
@@ -5,11 +6,35 @@ use serenity::framework::standard::{
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Datelike, Month, Utc};
 
 fn date_to_human_readable<'a>(datetime: &'a DateTime<Utc>) -> String {
-    let date = datetime.date().to_string();
-    format!("{}", date)
+    let date = datetime.date();
+
+    let day = date.weekday();
+    let month = Month::from_u32(date.month()).unwrap().name();
+    let year = date.year();
+
+    let mut date_str = date.to_string();
+
+    let date_filtered = date_str.split("-").nth(1).unwrap();
+
+    let suffix = match date_filtered.parse().unwrap() {
+        1 => "st",
+        2 => "nd",
+        3 => "rd",
+        _ => "th",
+    };
+
+    date_str = format!("{}{}", date_filtered, suffix);
+
+    format!(
+        "{day}, {date} {month} {year}",
+        day = day,
+        date = date_str,
+        month = month,
+        year = year,
+    )
 }
 
 #[command]
