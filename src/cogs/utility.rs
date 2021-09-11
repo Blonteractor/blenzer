@@ -5,6 +5,13 @@ use serenity::framework::standard::{
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 
+use chrono::{DateTime, Utc};
+
+fn date_to_human_readable<'a>(datetime: &'a DateTime<Utc>) -> String {
+    let date = datetime.date().to_string();
+    format!("{}", date)
+}
+
 #[command]
 async fn info(ctx: &Context, msg: &Message) -> CommandResult {
     let author = &msg.author;
@@ -37,8 +44,16 @@ async fn info(ctx: &Context, msg: &Message) -> CommandResult {
                         true,
                     )
                     .field("Top Role", top_role.mention(), true)
-                    .field("Created At", author.created_at(), true)
-                    .field("Joined At", member.joined_at.unwrap(), true)
+                    .field(
+                        "Created At",
+                        date_to_human_readable(&author.created_at()),
+                        true,
+                    )
+                    .field(
+                        "Joined At",
+                        date_to_human_readable(&member.joined_at.unwrap()),
+                        true,
+                    )
                     .field(
                         format!("Roles({})", author_roles.len()),
                         author_roles
