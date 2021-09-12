@@ -1,6 +1,6 @@
 extern crate dotenv;
-mod cogs;
-mod util;
+pub mod cogs;
+pub mod util;
 
 use std::collections::HashSet;
 use std::env;
