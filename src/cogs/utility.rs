@@ -39,58 +39,66 @@ fn date_to_human_readable<'a>(datetime: &'a DateTime<Utc>) -> String {
 
 #[command]
 async fn info(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let member = util::parsers::member(ctx, msg, args).await?;
+    let members = util::parsers::member(ctx, msg, args, true).await;
 
-    let mut member_roles = match member.roles(ctx).await {
-        Some(roles) => roles,
-        None => Vec::new(),
-    };
+    for result in members {
+        let member = match result {
+            Ok(m) => m,
+            Err(_) => continue,
+        };
 
-    member_roles.sort();
+        let mut member_roles = match member.roles(ctx).await {
+            Some(roles) => roles,
+            None => Vec::new(),
+        };
 
-    let top_role = member_roles.last().unwrap();
-    let avatar_url = &member.user.avatar_url().unwrap_or(String::new());
-    msg.channel_id
-        .send_message(ctx, |c| {
-            c.reference_message(msg).embed(|e| {
-                e.thumbnail(avatar_url)
-                    .color(top_role.colour)
-                    .url(avatar_url)
-                    .title(format!(
-                        "{name}#{discrim}",
-                        name = member.user.name,
-                        discrim = member.user.discriminator
-                    ))
-                    .field("ID", member.user.id, true)
-                    .field(
-                        "Nickname",
-                        member.nick.as_ref().unwrap_or(&"NA".to_string()),
-                        true,
-                    )
-                    .field("Top Role", top_role.mention(), true)
-                    .field(
-                        "Created At",
-                        date_to_human_readable(&member.user.created_at()),
-                        true,
-                    )
-                    .field(
-                        "Joined At",
-                        date_to_human_readable(&member.joined_at.unwrap()),
-                        true,
-                    )
-                    .field(
-                        format!("Roles({})", member_roles.len()),
-                        member_roles
-                            .iter()
-                            .rev()
-                            .map(|r| r.mention().to_string())
-                            .collect::<Vec<String>>()
-                            .join("\n"),
-                        false,
-                    )
+        member_roles.sort();
+
+        let top_role = member_roles.last().unwrap();
+        let avatar_url = &member.user.avatar_url().unwrap_or(String::new());
+        msg.channel_id
+            .send_message(ctx, |c| {
+                c.reference_message(msg).embed(|e| {
+                    e.thumbnail(avatar_url)
+                        .color(top_role.colour)
+                        .url(avatar_url)
+                        .title(format!(
+                            "{name}#{discrim}",
+                            name = member.user.name,
+                            discrim = member.user.discriminator
+                        ))
+                        .field("ID", member.user.id, true)
+                        .field(
+                            "Nickname",
+                            member.nick.as_ref().unwrap_or(&"NA".to_string()),
+                            true,
+                        )
+                        .field("Top Role", top_role.mention(), true)
+                        .field(
+                            "Created At",
+                            date_to_human_readable(&member.user.created_at()),
+                            true,
+                        )
+                        .field(
+                            "Joined At",
+                            date_to_human_readable(&member.joined_at.unwrap()),
+                            true,
+                        )
+                        .field(
+                            format!("Roles({})", member_roles.len()),
+                            member_roles
+                                .iter()
+                                .rev()
+                                .map(|r| r.mention().to_string())
+                                .collect::<Vec<String>>()
+                                .join("\n"),
+                            false,
+                        )
+                })
             })
-        })
-        .await?;
+            .await?;
+    }
+
     Ok(())
 }
 
