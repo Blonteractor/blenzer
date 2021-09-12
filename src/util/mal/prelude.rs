@@ -33,7 +33,7 @@ impl MALConfig {
         let mut map = HeaderMap::new();
         let v = format!("Bearer {}", self.access_token);
         map.insert(
-            HeaderName::from_static("Authorization"),
+            HeaderName::from_static("authorization"),
             HeaderValue::from_str(&v).unwrap(),
         );
         map
@@ -69,8 +69,8 @@ impl MALConfig {
 
     pub async fn get(
         &self,
-        url: String,
-        params: HashMap<String, String>,
+        url: &str,
+        params: HashMap<&str, &str>,
     ) -> Result<Response, reqwest::Error> {
         self.client
             .get(url)
@@ -82,8 +82,8 @@ impl MALConfig {
 
     pub async fn post(
         &self,
-        url: String,
-        data: HashMap<String, String>,
+        url: &str,
+        data: HashMap<&str, &str>,
     ) -> Result<Response, reqwest::Error> {
         self.client
             .post(url)
@@ -96,16 +96,34 @@ impl MALConfig {
 
 #[cfg(test)]
 mod test {
+    use dotenv::dotenv;
+    use reqwest::StatusCode;
+
     use super::*;
     use std::env;
 
-    #[test]
-    fn works() {
+    #[tokio::test]
+    async fn env_vars() {
+        dotenv().ok();
+
         let mal_cofnig = MALConfig::new(
             env::var("MAL_CLIENT_ID").unwrap(),
             env::var("MAL_CLIENT_SECRET").unwrap(),
             env::var("MAL_ACCESS_TOKEN").unwrap(),
             env::var("MAL_REFRESH_TOKEN").unwrap(),
         );
+
+        let response = mal_cofnig
+            .get(
+                "https://api.myanimelist.net/v2/anime",
+                hashmap! {
+                    "q" => "Death Note",
+                    "limit" => "1"
+                },
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
     }
 }

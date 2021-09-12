@@ -1,4 +1,8 @@
 extern crate dotenv;
+
+#[macro_use]
+extern crate maplit;
+
 pub mod cogs;
 pub mod util;
 
