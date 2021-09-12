@@ -1,5 +1,8 @@
-use reqwest;
-use serde_json::json;
+use reqwest::{
+    self,
+    header::{HeaderMap, HeaderName, HeaderValue},
+    Client, Response,
+};
 use std::collections::HashMap;
 
 pub struct MALConfig {
@@ -7,6 +10,7 @@ pub struct MALConfig {
     client_secret: String,
     access_token: String,
     refresh_token: String,
+    client: Client,
 }
 
 impl MALConfig {
@@ -21,42 +25,87 @@ impl MALConfig {
             client_secret: client_secret.to_string(),
             access_token: access_token.to_string(),
             refresh_token: refresh_token.to_string(),
+            client: reqwest::Client::new(),
         }
     }
 
-    fn headers(&self) -> HashMap<String, String> {
-        let mut headers = HashMap::new();
-        headers.insert(
-            String::from("Authorization"),
-            format!("Bearer {}", self.access_token),
+    fn headers(&self) -> HeaderMap {
+        let mut map = HeaderMap::new();
+        let v = format!("Bearer {}", self.access_token);
+        map.insert(
+            HeaderName::from_static("Authorization"),
+            HeaderValue::from_str(&v).unwrap(),
         );
-
-        headers
+        map
     }
 
-    pub async fn regen_token(&mut self) -> String {
-        let client = reqwest::Client::new();
-        let response = client
+    pub async fn regen_token(&mut self) -> Result<&str, reqwest::Error> {
+        let response = self
+            .client
             .post("https://myanimelist.net/v1/oauth2/token")
-            .json(&json!({"a": "b"}))
+            .query(&[
+                ("client_id", self.client_id.as_str()),
+                ("client_secret", self.client_secret.as_str()),
+                ("grant_type", "refresh_token"),
+                ("refresh_token", self.refresh_token.as_str()),
+            ])
             .send()
             .await;
 
-        response.unwrap().json().await.unwrap()
+        let response_data = response?.json::<HashMap<String, String>>().await.unwrap();
+
+        self.access_token = response_data
+            .get("access_token")
+            .unwrap_or(&self.access_token)
+            .to_string();
+
+        self.refresh_token = response_data
+            .get("refresh_token")
+            .unwrap_or(&self.refresh_token)
+            .to_string();
+
+        Ok(self.access_token.as_str())
+    }
+
+    pub async fn get(
+        &self,
+        url: String,
+        params: HashMap<String, String>,
+    ) -> Result<Response, reqwest::Error> {
+        self.client
+            .get(url)
+            .query(&params)
+            .headers(self.headers())
+            .send()
+            .await
+    }
+
+    pub async fn post(
+        &self,
+        url: String,
+        data: HashMap<String, String>,
+    ) -> Result<Response, reqwest::Error> {
+        self.client
+            .post(url)
+            .query(&data)
+            .headers(self.headers())
+            .send()
+            .await
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::env;
 
     #[test]
     fn works() {
-        let _ = MALConfig::new(
-            "client_id",
-            "client_secret",
-            "access_token",
-            "refresh_token",
+        let mal_cofnig = MALConfig::new(
+            env::var("MAL_CLIENT_ID").unwrap(),
+            env::var("MAL_CLIENT_SECRET").unwrap(),
+            env::var("MAL_ACCESS_TOKEN").unwrap(),
+            env::var("MAL_REFRESH_TOKEN").unwrap(),
         );
     }
 }

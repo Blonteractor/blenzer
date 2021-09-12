@@ -68,7 +68,6 @@ dependencies = [
  "num-traits",
  "reqwest",
  "serde",
- "serde_json",
  "serenity",
  "tokio",
 ]
