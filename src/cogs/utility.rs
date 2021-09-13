@@ -8,7 +8,7 @@ use serenity::framework::standard::{
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 
-fn date_to_human_readable<'a>(datetime: &'a DateTime<Utc>) -> String {
+fn date_to_human_readable(datetime: &DateTime<Utc>) -> String {
     let date = datetime.date();
 
     let day = date.weekday();
@@ -17,7 +17,7 @@ fn date_to_human_readable<'a>(datetime: &'a DateTime<Utc>) -> String {
 
     let mut date_str = date.to_string();
 
-    let date_filtered = date_str.split("-").nth(1).unwrap();
+    let date_filtered = date_str.split('-').nth(1).unwrap();
 
     let suffix = match date_filtered.parse().unwrap() {
         1 => "st",
@@ -55,7 +55,7 @@ async fn info(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         member_roles.sort();
 
         let top_role = member_roles.last().unwrap();
-        let avatar_url = &member.user.avatar_url().unwrap_or(String::new());
+        let avatar_url = &member.user.avatar_url().unwrap_or_default();
         msg.channel_id
             .send_message(ctx, |c| {
                 c.reference_message(msg).embed(|e| {

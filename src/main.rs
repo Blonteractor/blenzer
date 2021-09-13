@@ -61,9 +61,7 @@ async fn unrecognised_command_hook(_: &Context, msg: &Message, unrecognised_comm
 
 #[hook]
 async fn command_error_hook(_: &Context, _: &Message, error: DispatchError) {
-    match error {
-        _ => eprintln!("Error occured in command: {:?}", error),
-    }
+    eprintln!("Error occured in command: {:?}", error)
 }
 
 #[tokio::main]

@@ -37,9 +37,9 @@ mod test {
     #[tokio::test]
 
     async fn berserk() {
-        let mal_cofnig = MALConfig::from_env();
+        let mal_config = MALConfig::from_env();
 
-        let response = mal_cofnig
+        let response = mal_config
             .get(
                 "https://api.myanimelist.net/v2/manga/2",
                 hashmap! {
