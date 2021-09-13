@@ -5,12 +5,15 @@ use std::collections::HashMap;
 type JSONMap = HashMap<String, String>;
 type JSONDateTime = DateTime<Utc>;
 
+use super::prelude::enums::*;
+use super::prelude::structs::*;
+
 #[derive(Deserialize)]
-pub struct MangaSearchResponse {
-    pub data: Vec<HashMap<String, Manga>>,
+pub struct AnimeSearchResponse {
+    pub data: Vec<HashMap<String, Anime>>,
 }
 #[derive(Deserialize)]
-pub struct Manga {
+pub struct Anime {
     pub id: usize,
     pub title: String,
 
@@ -53,178 +56,9 @@ pub struct Manga {
     pub studios: Vec<Studio>,
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all(deserialize = "snake_case"))]
-pub struct Genre {
-    pub id: usize,
-    pub name: GenreName,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all(deserialize = "snake_case"))]
-pub struct Studio {
-    pub id: usize,
-    pub name: String,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all(deserialize = "snake_case"))]
-pub struct Picture {
-    pub medium: String,
-    pub large: String,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all(deserialize = "lowercase"))]
-pub enum Rating {
-    #[serde(rename = "pg_13")]
-    PG13,
-    #[serde(rename = "r")]
-    R,
-    #[serde(rename = "r+")]
-    RPLUS,
-    #[serde(rename = "g")]
-    G,
-    #[serde(rename = "pg")]
-    PG,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all(deserialize = "snake_case"))]
-pub struct Broadcast {
-    pub day_of_the_week: DayOfTheWeek,
-    pub start_time: String,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all(deserialize = "snake_case"))]
-pub enum DayOfTheWeek {
-    Monday,
-    Tuesday,
-    Wednesday,
-    Thursday,
-    Friday,
-    Saturday,
-    Sunday,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all(deserialize = "snake_case"))]
-pub struct StartSeason {
-    pub year: usize,
-    pub season: Season,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all(deserialize = "snake_case"))]
-pub enum Season {
-    Spring,
-    Summer,
-    Fall,
-    Winter,
-}
-
-#[derive(Deserialize)]
-pub enum GenreName {
-    Action,
-    Adventure,
-    Comedy,
-    Drama,
-    #[serde(rename = "Slice Of Life")]
-    SliceOfLife,
-    Fantasy,
-    Magic,
-    Supernatural,
-    Horror,
-    Mystery,
-    Psychological,
-    Romance,
-    #[serde(rename = "Sci-Fi")]
-    SciFi,
-    Cypberpunk,
-    Game,
-    Ecchi,
-    Demons,
-    Harem,
-    Josei,
-    #[serde(rename = "Martial Arts")]
-    MartialArts,
-    Kids,
-    Hisorical,
-    Hentai,
-    Isekai,
-    Millitary,
-    Mecha,
-    Music,
-    Parody,
-    Police,
-    #[serde(rename = "Post Apocalyptic")]
-    PostApocalyptic,
-    #[serde(rename = "Reverse Harem")]
-    ReverseHarem,
-    School,
-    Seinen,
-    Shoujou,
-    Samurai,
-    #[serde(rename = "Shoujou Ai")]
-    ShoujoAi,
-    Shounen,
-    #[serde(rename = "Shounen Ai")]
-    ShounenAi,
-    Space,
-    Sports,
-    #[serde(rename = "Super Power")]
-    SuperPower,
-    Tragedy,
-    Vampire,
-    Yuri,
-    Yaoi,
-    Thriller,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all(deserialize = "snake_case"))]
-pub enum Source {
-    Orignal,
-    Manga,
-    Game,
-    LightNovel,
-    VisualNovel,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all(deserialize = "lowercase"))]
-pub enum MediaType {
-    TV,
-    ONA,
-    OVA,
-    Movie,
-    Special,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all(deserialize = "snake_case"))]
-pub enum Status {
-    FinishedAiring,
-    Airing,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all(deserialize = "snake_case"))]
-pub enum NSFWLevel {
-    White,
-    Black,
-}
-#[derive(Deserialize)]
-pub struct AlternativeTitles {
-    pub synonyms: Vec<String>,
-    pub en: String,
-    pub ja: String,
-}
-
 #[cfg(test)]
 mod test {
-    use super::{super::prelude::MALConfig, Manga};
+    use super::{super::config::MALConfig, Anime};
     #[tokio::test]
 
     async fn diamon_no_ace() {
@@ -240,7 +74,7 @@ mod test {
             .await
             .unwrap();
 
-        let manga = response.json::<Manga>().await.unwrap();
+        let manga = response.json::<Anime>().await.unwrap();
 
         assert_eq!(manga.id, 30230);
         assert_eq!(manga.title, "Diamond no Ace: Second Season");
