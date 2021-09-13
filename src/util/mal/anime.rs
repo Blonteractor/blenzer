@@ -225,19 +225,10 @@ pub struct AlternativeTitles {
 #[cfg(test)]
 mod test {
     use super::{super::prelude::MALConfig, Manga};
-    use dotenv::dotenv;
-    use std::env;
     #[tokio::test]
 
-    async fn works() {
-        dotenv().ok();
-
-        let mal_cofnig = MALConfig::new(
-            env::var("MAL_CLIENT_ID").unwrap(),
-            env::var("MAL_CLIENT_SECRET").unwrap(),
-            env::var("MAL_ACCESS_TOKEN").unwrap(),
-            env::var("MAL_REFRESH_TOKEN").unwrap(),
-        );
+    async fn diamon_no_ace() {
+        let mal_cofnig = MALConfig::from_env();
 
         let response = mal_cofnig
             .get(

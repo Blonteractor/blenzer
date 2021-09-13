@@ -1,9 +1,11 @@
+use dotenv::dotenv;
 use reqwest::{
     self,
     header::{HeaderMap, HeaderName, HeaderValue},
     Client, Response,
 };
 use std::collections::HashMap;
+use std::env;
 
 pub struct MALConfig {
     client_id: String,
@@ -19,14 +21,25 @@ impl MALConfig {
         client_secret: impl ToString,
         access_token: impl ToString,
         refresh_token: impl ToString,
-    ) -> MALConfig {
-        MALConfig {
+    ) -> Self {
+        Self {
             client_id: client_id.to_string(),
             client_secret: client_secret.to_string(),
             access_token: access_token.to_string(),
             refresh_token: refresh_token.to_string(),
             client: reqwest::Client::new(),
         }
+    }
+
+    pub fn from_env() -> Self {
+        dotenv().ok();
+
+        MALConfig::new(
+            env::var("MAL_CLIENT_ID").unwrap(),
+            env::var("MAL_CLIENT_SECRET").unwrap(),
+            env::var("MAL_ACCESS_TOKEN").unwrap(),
+            env::var("MAL_REFRESH_TOKEN").unwrap(),
+        )
     }
 
     fn headers(&self) -> HeaderMap {
@@ -100,18 +113,12 @@ mod test {
     use reqwest::StatusCode;
 
     use super::*;
-    use std::env;
 
     #[tokio::test]
     async fn env_vars() {
         dotenv().ok();
 
-        let mal_cofnig = MALConfig::new(
-            env::var("MAL_CLIENT_ID").unwrap(),
-            env::var("MAL_CLIENT_SECRET").unwrap(),
-            env::var("MAL_ACCESS_TOKEN").unwrap(),
-            env::var("MAL_REFRESH_TOKEN").unwrap(),
-        );
+        let mal_cofnig = MALConfig::from_env();
 
         let response = mal_cofnig
             .get(
