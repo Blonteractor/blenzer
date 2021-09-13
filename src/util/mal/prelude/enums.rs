@@ -92,6 +92,7 @@ pub enum Status {
     FinishedAiring,
     Airing,
     CurrentlyPublishing,
+    Finished,
 }
 
 #[derive(Deserialize)]

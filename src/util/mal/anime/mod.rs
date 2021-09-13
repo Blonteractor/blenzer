@@ -5,12 +5,11 @@ use super::prelude::enums::*;
 use super::prelude::structs::*;
 use super::prelude::*;
 
+use super::MALClient;
 use enums::*;
 use serde::Deserialize;
 use std::ops::Deref;
 use structs::*;
-
-pub type AnimeSearchResponse = SearchResponse<Anime>;
 
 #[derive(Deserialize)]
 pub struct Anime {
@@ -25,7 +24,30 @@ pub struct Anime {
     pub rating: Option<Rating>,
 
     #[serde(rename = "average_episode_duration")]
-    pub episode_duration: usize,
+    pub episode_duration: Option<usize>,
+}
+
+impl Anime {
+    pub async fn from_id(id: usize) -> Result<Self, reqwest::Error> {
+        MALClient::from_env()
+            .get_anime_id(id)
+            .await?
+            .json::<Self>()
+            .await
+    }
+
+    pub async fn from_name(query: &str) -> Result<Self, reqwest::Error> {
+        Ok(MALClient::from_env()
+            .get_anime_name(query)
+            .await?
+            .json::<SearchResponse<Self>>()
+            .await?
+            .data[0]
+            .drain()
+            .next()
+            .unwrap()
+            .1)
+    }
 }
 
 impl Deref for Anime {
@@ -38,25 +60,18 @@ impl Deref for Anime {
 
 #[cfg(test)]
 mod test {
-    use super::{super::MALConfig, Anime};
+    use super::Anime;
+
     #[tokio::test]
-
-    async fn diamon_no_ace() {
-        let mal_cofnig = MALConfig::from_env();
-
-        let response = mal_cofnig
-            .get(
-                "https://api.myanimelist.net/v2/anime/30230",
-                hashmap! {
-                    "fields" => "title,main_picture,alternative_titles,start_date,end_date,synopsis,mean,rank,popularity,nsfw,created_at,media_type,status,genres,num_episodes,start_season,broadcast,source,average_episode_duration,rating,pictures,background,studios"
-                },
-            )
-            .await
-            .unwrap();
-
-        let anime = response.json::<Anime>().await.unwrap();
+    async fn from_id() {
+        let anime = Anime::from_id(30230).await.unwrap();
 
         assert_eq!(anime.id, 30230);
-        assert_eq!(anime.title, "Diamond no Ace: Second Season");
+    }
+
+    #[tokio::test]
+    async fn from_name() {
+        let anime = Anime::from_name("Death Note").await.unwrap();
+        assert_eq!(anime.id, 1535);
     }
 }

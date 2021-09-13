@@ -3,6 +3,7 @@ pub mod structs;
 
 use super::prelude::structs::*;
 use super::prelude::*;
+use super::MALClient;
 use serde::Deserialize;
 use std::ops::Deref;
 use structs::*;
@@ -31,27 +32,46 @@ impl Deref for Manga {
     }
 }
 
+impl Manga {
+    pub async fn from_id(id: usize) -> Result<Self, reqwest::Error> {
+        MALClient::from_env()
+            .get_manga_id(id)
+            .await?
+            .json::<Self>()
+            .await
+    }
+
+    pub async fn from_name(query: &str) -> Result<Self, reqwest::Error> {
+        Ok(MALClient::from_env()
+            .get_manga_name(query)
+            .await?
+            .json::<SearchResponse<Self>>()
+            .await?
+            .data[0]
+            .drain()
+            .next()
+            .unwrap()
+            .1)
+    }
+}
+
 #[cfg(test)]
 mod test {
-    use super::{super::MALClient, Manga};
+    use super::Manga;
+
     #[tokio::test]
-
-    async fn berserk() {
-        let mal_client = MALClient::from_env();
-
-        let response = mal_client
-            .get(
-                "https://api.myanimelist.net/v2/manga/2",
-                hashmap! {
-                    "fields" => "title,main_picture,alternative_titles,start_date,end_date,synopsis,mean,rank,popularity,nsfw,created_at,media_type,status,genres,pictures,background,studios,num_volumes,num_chapters,authors"
-                },
-            )
-            .await
-            .unwrap();
-
-        let manga = response.json::<Manga>().await.unwrap();
+    async fn from_id() {
+        let manga = Manga::from_id(2).await.unwrap();
 
         assert_eq!(manga.id, 2);
         assert_eq!(manga.title, "Berserk");
+    }
+
+    #[tokio::test]
+    async fn from_name() {
+        let manga = Manga::from_name("Blame").await.unwrap();
+
+        assert_eq!(manga.id, 149);
+        assert_eq!(manga.title, "Blame!");
     }
 }
