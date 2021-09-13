@@ -33,13 +33,13 @@ impl Deref for Manga {
 
 #[cfg(test)]
 mod test {
-    use super::{super::MALConfig, Manga};
+    use super::{super::MALClient, Manga};
     #[tokio::test]
 
     async fn berserk() {
-        let mal_config = MALConfig::from_env();
+        let mal_client = MALClient::from_env();
 
-        let response = mal_config
+        let response = mal_client
             .get(
                 "https://api.myanimelist.net/v2/manga/2",
                 hashmap! {

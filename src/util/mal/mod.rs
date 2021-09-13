@@ -11,7 +11,7 @@ use reqwest::{
 use std::collections::HashMap;
 use std::env;
 
-pub struct MALConfig {
+pub struct MALClient {
     client_id: String,
     client_secret: String,
     access_token: String,
@@ -19,7 +19,7 @@ pub struct MALConfig {
     client: Client,
 }
 
-impl MALConfig {
+impl MALClient {
     pub fn new(
         client_id: impl ToString,
         client_secret: impl ToString,
@@ -38,7 +38,7 @@ impl MALConfig {
     pub fn from_env() -> Self {
         dotenv().ok();
 
-        MALConfig::new(
+        MALClient::new(
             env::var("MAL_CLIENT_ID").unwrap(),
             env::var("MAL_CLIENT_SECRET").unwrap(),
             env::var("MAL_ACCESS_TOKEN").unwrap(),
@@ -122,7 +122,7 @@ mod test {
     async fn env_vars() {
         dotenv().ok();
 
-        let mal_cofnig = MALConfig::from_env();
+        let mal_cofnig = MALClient::from_env();
 
         let response = mal_cofnig
             .get(
