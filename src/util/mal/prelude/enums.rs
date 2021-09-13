@@ -48,6 +48,7 @@ pub enum GenreName {
     Game,
     Ecchi,
     Demons,
+    Military,
     Harem,
     Josei,
     #[serde(rename = "Martial Arts")]

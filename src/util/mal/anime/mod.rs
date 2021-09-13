@@ -3,6 +3,8 @@ pub mod structs;
 
 use super::prelude::enums::*;
 use super::prelude::structs::*;
+use super::prelude::*;
+
 use enums::*;
 use serde::Deserialize;
 use std::ops::Deref;
@@ -20,10 +22,10 @@ pub struct Anime {
     pub start_season: Option<StartSeason>,
     pub broadcast: Option<Broadcast>,
     pub source: Option<Source>,
-
     pub rating: Option<Rating>,
-    pub pictures: Option<Vec<Picture>>,
-    pub background: Option<String>,
+
+    #[serde(rename = "average_episode_duration")]
+    pub episode_duration: usize,
 }
 
 impl Deref for Anime {
