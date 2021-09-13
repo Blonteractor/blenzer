@@ -1,47 +1,17 @@
-use chrono::{DateTime, Utc};
-use serde::Deserialize;
-use std::collections::HashMap;
-
-type JSONMap = HashMap<String, String>;
-type JSONDateTime = DateTime<Utc>;
-
 use super::prelude::enums::*;
 use super::prelude::structs::*;
+use serde::Deserialize;
+use std::ops::Deref;
 
-#[derive(Deserialize)]
-pub struct AnimeSearchResponse {
-    pub data: Vec<HashMap<String, Anime>>,
-}
+pub type AnimeSearchResponse = SearchResponse<Anime>;
+
+use enums::*;
+use structs::*;
+
 #[derive(Deserialize)]
 pub struct Anime {
-    pub id: usize,
-    pub title: String,
-
-    #[serde(rename = "main_picture")]
-    pub cover_art: Picture,
-    pub medium: Option<JSONMap>,
-    pub alternative_titles: Option<AlternativeTitles>,
-
-    #[serde(rename = "start_date")]
-    pub start: Option<String>,
-
-    #[serde(rename = "end_date")]
-    pub end: Option<String>,
-    pub synopsis: Option<String>,
-
-    #[serde(rename = "mean")]
-    pub score: Option<f32>,
-
-    pub rank: Option<usize>,
-    pub popularity: Option<usize>,
-    pub num_list_users: Option<usize>,
-    pub scoring_users: Option<usize>,
-    pub nsfw: Option<NSFWLevel>,
-    pub created_at: Option<JSONDateTime>,
-    pub updated_at: Option<JSONDateTime>,
-    pub media_type: Option<MediaType>,
-    pub status: Option<Status>,
-    pub genres: Vec<Genre>,
+    #[serde(flatten)]
+    pub data: BasicMalObject,
 
     #[serde(rename = "num_episodes")]
     pub episodes: Option<usize>,
@@ -49,11 +19,66 @@ pub struct Anime {
     pub broadcast: Option<Broadcast>,
     pub source: Option<Source>,
 
-    #[serde(rename = "average_episode_duration")]
-    pub episode_duration: Option<usize>,
     pub rating: Option<Rating>,
     pub pictures: Option<Vec<Picture>>,
-    pub studios: Vec<Studio>,
+    pub background: Option<String>,
+}
+
+impl Deref for Anime {
+    type Target = BasicMalObject;
+
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+
+pub mod structs {
+    use super::super::prelude::enums::*;
+    use super::enums::*;
+    use serde::Deserialize;
+
+    #[derive(Deserialize)]
+    #[serde(rename_all(deserialize = "snake_case"))]
+    pub struct Studio {
+        pub id: usize,
+        pub name: String,
+    }
+
+    #[derive(Deserialize)]
+    #[serde(rename_all(deserialize = "snake_case"))]
+    pub struct Broadcast {
+        pub day_of_the_week: DayOfTheWeek,
+        pub start_time: String,
+    }
+
+    #[derive(Deserialize)]
+    #[serde(rename_all(deserialize = "snake_case"))]
+    pub struct StartSeason {
+        pub year: usize,
+        pub season: Season,
+    }
+}
+pub mod enums {
+    use serde::Deserialize;
+
+    #[derive(Deserialize)]
+    #[serde(rename_all(deserialize = "snake_case"))]
+    pub enum Source {
+        Orignal,
+        Manga,
+        Game,
+        LightNovel,
+        VisualNovel,
+    }
+
+    #[derive(Deserialize)]
+    #[serde(rename_all(deserialize = "snake_case"))]
+    pub enum Season {
+        Spring,
+        Summer,
+        Fall,
+        Winter,
+    }
 }
 
 #[cfg(test)]
@@ -74,9 +99,9 @@ mod test {
             .await
             .unwrap();
 
-        let manga = response.json::<Anime>().await.unwrap();
+        let anime = response.json::<Anime>().await.unwrap();
 
-        assert_eq!(manga.id, 30230);
-        assert_eq!(manga.title, "Diamond no Ace: Second Season");
+        assert_eq!(anime.id, 30230);
+        assert_eq!(anime.title, "Diamond no Ace: Second Season");
     }
 }

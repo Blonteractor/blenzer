@@ -29,15 +29,6 @@ pub mod enums {
     }
 
     #[derive(Deserialize)]
-    #[serde(rename_all(deserialize = "snake_case"))]
-    pub enum Season {
-        Spring,
-        Summer,
-        Fall,
-        Winter,
-    }
-
-    #[derive(Deserialize)]
     pub enum GenreName {
         Action,
         Adventure,
@@ -97,12 +88,17 @@ pub mod enums {
 
     #[derive(Deserialize)]
     #[serde(rename_all(deserialize = "snake_case"))]
-    pub enum Source {
-        Orignal,
-        Manga,
-        Game,
-        LightNovel,
-        VisualNovel,
+    pub enum Status {
+        FinishedAiring,
+        Airing,
+        CurrentlyPublishing,
+    }
+
+    #[derive(Deserialize)]
+    #[serde(rename_all(deserialize = "snake_case"))]
+    pub enum NSFWLevel {
+        White,
+        Black,
     }
 
     #[derive(Deserialize)]
@@ -113,26 +109,56 @@ pub mod enums {
         OVA,
         Movie,
         Special,
-    }
-
-    #[derive(Deserialize)]
-    #[serde(rename_all(deserialize = "snake_case"))]
-    pub enum Status {
-        FinishedAiring,
-        Airing,
-    }
-
-    #[derive(Deserialize)]
-    #[serde(rename_all(deserialize = "snake_case"))]
-    pub enum NSFWLevel {
-        White,
-        Black,
+        Manga,
     }
 }
 
 pub mod structs {
     use super::enums::*;
+    use chrono::{DateTime, Utc};
     use serde::Deserialize;
+    use std::collections::HashMap;
+
+    type JSONDateTime = DateTime<Utc>;
+
+    #[derive(Deserialize)]
+    pub struct SearchResponse<T> {
+        pub data: Vec<HashMap<String, T>>,
+    }
+
+    #[derive(Deserialize)]
+    pub struct BasicMalObject {
+        pub id: usize,
+        pub title: String,
+
+        #[serde(rename = "main_picture")]
+        pub cover_art: Picture,
+        pub alternative_titles: Option<AlternativeTitles>,
+
+        #[serde(rename = "start_date")]
+        pub start: Option<String>,
+
+        #[serde(rename = "end_date")]
+        pub end: Option<String>,
+        pub synopsis: Option<String>,
+
+        #[serde(rename = "mean")]
+        pub score: Option<f32>,
+
+        pub rank: Option<usize>,
+        pub popularity: Option<usize>,
+        pub num_list_users: Option<usize>,
+        pub scoring_users: Option<usize>,
+        pub nsfw: Option<NSFWLevel>,
+        pub created_at: Option<JSONDateTime>,
+        pub updated_at: Option<JSONDateTime>,
+        pub media_type: Option<MediaType>,
+        pub status: Option<Status>,
+        pub genres: Vec<Genre>,
+        pub rating: Option<Rating>,
+        pub pictures: Option<Vec<Picture>>,
+        pub background: Option<String>,
+    }
 
     #[derive(Deserialize)]
     #[serde(rename_all(deserialize = "snake_case"))]
@@ -143,30 +169,9 @@ pub mod structs {
 
     #[derive(Deserialize)]
     #[serde(rename_all(deserialize = "snake_case"))]
-    pub struct Studio {
-        pub id: usize,
-        pub name: String,
-    }
-
-    #[derive(Deserialize)]
-    #[serde(rename_all(deserialize = "snake_case"))]
     pub struct Picture {
         pub medium: String,
         pub large: String,
-    }
-
-    #[derive(Deserialize)]
-    #[serde(rename_all(deserialize = "snake_case"))]
-    pub struct Broadcast {
-        pub day_of_the_week: DayOfTheWeek,
-        pub start_time: String,
-    }
-
-    #[derive(Deserialize)]
-    #[serde(rename_all(deserialize = "snake_case"))]
-    pub struct StartSeason {
-        pub year: usize,
-        pub season: Season,
     }
 
     #[derive(Deserialize)]
