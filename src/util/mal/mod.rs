@@ -109,6 +109,54 @@ impl MALClient {
             .send()
             .await
     }
+
+    pub async fn get_anime_name(&self, query: &str) -> Result<Response, reqwest::Error> {
+        self
+            .get(
+            "https://api.myanimelist.net/v2/anime",
+                hashmap! {
+                    "q" => query,
+                    "limit" => "1",
+                    "fields" => "title,main_picture,alternative_titles,start_date,end_date,synopsis,mean,rank,popularity,nsfw,created_at,media_type,status,genres,num_episodes,start_season,broadcast,source,average_episode_duration,rating,pictures,background,studios",
+                },
+            )
+            .await
+    }
+
+    pub async fn get_anime_id(&self, id: usize) -> Result<Response, reqwest::Error> {
+        self
+            .get(
+            format!("https://api.myanimelist.net/v2/anime/{}", id).as_str(),
+                hashmap! {
+                    "fields" => "title,main_picture,alternative_titles,start_date,end_date,synopsis,mean,rank,popularity,nsfw,created_at,media_type,status,genres,num_episodes,start_season,broadcast,source,average_episode_duration,rating,pictures,background,studios",
+                },
+            )
+            .await
+    }
+
+    pub async fn get_manga_name(&self, query: &str) -> Result<Response, reqwest::Error> {
+        self
+            .get(
+            "https://api.myanimelist.net/v2/manga",
+                hashmap! {
+                    "q" => query,
+                    "limit" => "1",
+                    "fields" => "title,main_picture,alternative_titles,start_date,end_date,synopsis,mean,rank,popularity,nsfw,created_at,media_type,status,genres,pictures,background,studios,num_volumes,num_chapters,authors",
+                },
+            )
+            .await
+    }
+
+    pub async fn get_manga_id(&self, id: usize) -> Result<Response, reqwest::Error> {
+        self
+            .get(
+            format!("https://api.myanimelist.net/v2/manga/{}", id).as_str(),
+                hashmap! {
+                    "fields" => "title,main_picture,alternative_titles,start_date,end_date,synopsis,mean,rank,popularity,nsfw,created_at,media_type,status,genres,pictures,background,studios,num_volumes,num_chapters,authors",
+                },
+            )
+            .await
+    }
 }
 
 #[cfg(test)]
