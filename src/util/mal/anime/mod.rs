@@ -1,12 +1,14 @@
+pub mod enums;
+pub mod structs;
+
 use super::prelude::enums::*;
 use super::prelude::structs::*;
+use enums::*;
 use serde::Deserialize;
 use std::ops::Deref;
+use structs::*;
 
 pub type AnimeSearchResponse = SearchResponse<Anime>;
-
-use enums::*;
-use structs::*;
 
 #[derive(Deserialize)]
 pub struct Anime {
@@ -32,58 +34,9 @@ impl Deref for Anime {
     }
 }
 
-pub mod structs {
-    use super::super::prelude::enums::*;
-    use super::enums::*;
-    use serde::Deserialize;
-
-    #[derive(Deserialize)]
-    #[serde(rename_all(deserialize = "snake_case"))]
-    pub struct Studio {
-        pub id: usize,
-        pub name: String,
-    }
-
-    #[derive(Deserialize)]
-    #[serde(rename_all(deserialize = "snake_case"))]
-    pub struct Broadcast {
-        pub day_of_the_week: DayOfTheWeek,
-        pub start_time: String,
-    }
-
-    #[derive(Deserialize)]
-    #[serde(rename_all(deserialize = "snake_case"))]
-    pub struct StartSeason {
-        pub year: usize,
-        pub season: Season,
-    }
-}
-pub mod enums {
-    use serde::Deserialize;
-
-    #[derive(Deserialize)]
-    #[serde(rename_all(deserialize = "snake_case"))]
-    pub enum Source {
-        Orignal,
-        Manga,
-        Game,
-        LightNovel,
-        VisualNovel,
-    }
-
-    #[derive(Deserialize)]
-    #[serde(rename_all(deserialize = "snake_case"))]
-    pub enum Season {
-        Spring,
-        Summer,
-        Fall,
-        Winter,
-    }
-}
-
 #[cfg(test)]
 mod test {
-    use super::{super::config::MALConfig, Anime};
+    use super::{super::MALConfig, Anime};
     #[tokio::test]
 
     async fn diamon_no_ace() {
