@@ -20,6 +20,9 @@ pub struct MALClient {
 }
 
 impl MALClient {
+    const ANIME_SEARCH_FIELDS: &'static str = "title,main_picture,alternative_titles,start_date,end_date,synopsis,mean,rank,popularity,nsfw,created_at,media_type,status,genres,num_episodes,start_season,broadcast,source,average_episode_duration,rating,pictures,background,studios";
+    const MANGA_SEARCH_FIELDS: &'static str = "title,main_picture,alternative_titles,start_date,end_date,synopsis,mean,rank,popularity,nsfw,created_at,media_type,status,genres,pictures,background,studios,num_volumes,num_chapters,authors";
+
     pub fn new(
         client_id: impl ToString,
         client_secret: impl ToString,
@@ -110,52 +113,73 @@ impl MALClient {
             .await
     }
 
-    pub async fn get_anime_name(&self, query: &str) -> Result<Response, reqwest::Error> {
-        self
-            .get(
+    pub async fn search_anime(
+        &self,
+        query: &str,
+        limit: usize,
+        full: bool,
+    ) -> Result<Response, reqwest::Error> {
+        let mut fields = "titles";
+
+        if full {
+            fields = MALClient::ANIME_SEARCH_FIELDS;
+        }
+        let limit_str = limit.to_string();
+
+        self.get(
             "https://api.myanimelist.net/v2/anime",
-                hashmap! {
-                    "q" => query,
-                    "limit" => "1",
-                    "fields" => "title,main_picture,alternative_titles,start_date,end_date,synopsis,mean,rank,popularity,nsfw,created_at,media_type,status,genres,num_episodes,start_season,broadcast,source,average_episode_duration,rating,pictures,background,studios",
-                },
-            )
-            .await
+            hashmap! {
+                "q" => query,
+                "limit" => &limit_str,
+                "fields" => fields,
+            },
+        )
+        .await
     }
 
     pub async fn get_anime_id(&self, id: usize) -> Result<Response, reqwest::Error> {
-        self
-            .get(
+        self.get(
             format!("https://api.myanimelist.net/v2/anime/{}", id).as_str(),
-                hashmap! {
-                    "fields" => "title,main_picture,alternative_titles,start_date,end_date,synopsis,mean,rank,popularity,nsfw,created_at,media_type,status,genres,num_episodes,start_season,broadcast,source,average_episode_duration,rating,pictures,background,studios",
-                },
-            )
-            .await
+            hashmap! {
+                "fields" => MALClient::ANIME_SEARCH_FIELDS,
+            },
+        )
+        .await
     }
 
-    pub async fn get_manga_name(&self, query: &str) -> Result<Response, reqwest::Error> {
-        self
-            .get(
+    pub async fn search_manga(
+        &self,
+        query: &str,
+        limit: usize,
+        full: bool,
+    ) -> Result<Response, reqwest::Error> {
+        let mut fields = "titles";
+
+        if full {
+            fields = MALClient::MANGA_SEARCH_FIELDS;
+        }
+
+        let limit_str = limit.to_string();
+
+        self.get(
             "https://api.myanimelist.net/v2/manga",
-                hashmap! {
-                    "q" => query,
-                    "limit" => "1",
-                    "fields" => "title,main_picture,alternative_titles,start_date,end_date,synopsis,mean,rank,popularity,nsfw,created_at,media_type,status,genres,pictures,background,studios,num_volumes,num_chapters,authors",
-                },
-            )
-            .await
+            hashmap! {
+                "q" => query,
+                "limit" => &limit_str,
+                "fields" => fields,
+            },
+        )
+        .await
     }
 
     pub async fn get_manga_id(&self, id: usize) -> Result<Response, reqwest::Error> {
-        self
-            .get(
+        self.get(
             format!("https://api.myanimelist.net/v2/manga/{}", id).as_str(),
-                hashmap! {
-                    "fields" => "title,main_picture,alternative_titles,start_date,end_date,synopsis,mean,rank,popularity,nsfw,created_at,media_type,status,genres,pictures,background,studios,num_volumes,num_chapters,authors",
-                },
-            )
-            .await
+            hashmap! {
+                "fields" => MALClient::MANGA_SEARCH_FIELDS,
+            },
+        )
+        .await
     }
 }
 

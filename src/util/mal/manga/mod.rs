@@ -42,7 +42,7 @@ impl Manga {
 
     pub async fn from_name(query: &str) -> Result<Self, reqwest::Error> {
         Ok(MALClient::from_env()
-            .get_manga_name(query)
+            .search_manga(query, 1, true)
             .await?
             .json::<SearchResponse<Self>>()
             .await?

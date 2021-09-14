@@ -37,7 +37,7 @@ impl Anime {
 
     pub async fn from_name(query: &str) -> Result<Self, reqwest::Error> {
         Ok(MALClient::from_env()
-            .get_anime_name(query)
+            .search_anime(query, 1, true)
             .await?
             .json::<SearchResponse<Self>>()
             .await?
