@@ -1,7 +1,6 @@
 pub mod enums;
 pub mod structs;
 
-use super::prelude::structs::*;
 use super::prelude::*;
 use super::MALClient;
 use serde::Deserialize;

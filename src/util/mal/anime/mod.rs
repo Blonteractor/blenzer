@@ -2,7 +2,6 @@ pub mod enums;
 pub mod structs;
 
 use super::prelude::enums::*;
-use super::prelude::structs::*;
 use super::prelude::*;
 
 use super::MALClient;

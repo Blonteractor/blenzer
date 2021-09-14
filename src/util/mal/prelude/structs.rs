@@ -1,11 +1,5 @@
 use super::enums::*;
 use serde::Deserialize;
-use std::collections::HashMap;
-
-#[derive(Deserialize)]
-pub struct SearchResponse<T> {
-    pub data: Vec<HashMap<String, T>>,
-}
 
 #[derive(Deserialize)]
 #[serde(rename_all(deserialize = "snake_case"))]

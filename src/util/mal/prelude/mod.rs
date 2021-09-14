@@ -4,6 +4,7 @@ pub mod structs;
 use chrono::{DateTime, Utc};
 use enums::*;
 use serde::Deserialize;
+use std::collections::HashMap;
 use structs::*;
 
 type JSONDateTime = DateTime<Utc>;
@@ -40,4 +41,9 @@ pub struct BasicMalObject {
     pub rating: Option<Rating>,
     pub pictures: Option<Vec<Picture>>,
     pub background: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct SearchResponse<T> {
+    pub data: Vec<HashMap<String, T>>,
 }
