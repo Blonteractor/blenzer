@@ -47,7 +47,44 @@ impl Anime {
             .unwrap()
             .1)
     }
+
+    pub async fn reload(&mut self) {
+        *self = Self::from_id(self.id).await.unwrap();
+    }
 }
+//     pub async fn search_basic(
+//         query: &str,
+//         limit: usize,
+//     ) -> Result<AnimeBasicSearch, reqwest::Error> {
+//         Ok(AnimeBasicSearch::start(
+//             MALClient::from_env()
+//                 .search_anime(query, limit, false)
+//                 .await?
+//                 .json::<SearchResponse<Self>>()
+//                 .await?,
+//         ))
+//     }
+// }
+
+// pub struct AnimeBasicSearch {
+//     data: Vec<Anime>,
+// }
+
+// impl AnimeBasicSearch {
+//     pub fn start(data: SearchResponse<Anime>) -> Self {
+//         Self {
+//             data: data.data.
+//         }
+//     }
+// }
+
+// impl Iterator for AnimeBasicSearch {
+//     type Item = (isize, String);
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         None
+//     }
+// }
 
 impl Deref for Anime {
     type Target = BasicMalObject;
@@ -71,6 +108,13 @@ mod test {
     #[tokio::test]
     async fn from_name() {
         let anime = Anime::from_name("Death Note").await.unwrap();
+        assert_eq!(anime.id, 1535);
+    }
+
+    #[tokio::test]
+    async fn reload() {
+        let mut anime = Anime::from_name("Death Note").await.unwrap();
+        anime.reload().await;
         assert_eq!(anime.id, 1535);
     }
 }
