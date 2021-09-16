@@ -3,7 +3,7 @@ use serde::Deserialize;
 #[derive(Deserialize)]
 #[serde(rename_all(deserialize = "snake_case"))]
 pub enum Source {
-    Orignal,
+    Original,
     Manga,
     Game,
     LightNovel,

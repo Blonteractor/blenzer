@@ -53,8 +53,10 @@ pub enum GenreName {
     Josei,
     #[serde(rename = "Martial Arts")]
     MartialArts,
+    #[serde(rename = "Avant Garde")]
+    AvantGarde,
     Kids,
-    Hisorical,
+    Historical,
     Hentai,
     Isekai,
     Millitary,
@@ -84,15 +86,17 @@ pub enum GenreName {
     Yuri,
     Yaoi,
     Thriller,
+    Suspense,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all(deserialize = "snake_case"))]
 pub enum Status {
     FinishedAiring,
-    Airing,
+    CurrentlyAiring,
     CurrentlyPublishing,
     Finished,
+    OnHiatus,
 }
 
 #[derive(Deserialize)]
@@ -111,4 +115,5 @@ pub enum MediaType {
     Movie,
     Special,
     Manga,
+    Manhwa,
 }

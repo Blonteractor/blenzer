@@ -116,25 +116,35 @@ impl MALClient {
     pub async fn search_anime(
         &self,
         query: &str,
-        limit: usize,
+        limit: Option<usize>,
+        offset: Option<usize>,
         full: bool,
     ) -> Result<Response, reqwest::Error> {
         let mut fields = "titles";
+        let mut offset_str = String::new();
+        let mut limit_str = String::new();
 
         if full {
             fields = MALClient::ANIME_SEARCH_FIELDS;
         }
-        let limit_str = limit.to_string();
 
-        self.get(
-            "https://api.myanimelist.net/v2/anime",
-            hashmap! {
-                "q" => query,
-                "limit" => &limit_str,
-                "fields" => fields,
-            },
-        )
-        .await
+        let mut params = hashmap! {
+            "q" => query,
+            "fields" => fields,
+        };
+
+        if let Some(offset) = offset {
+            offset_str = offset.to_string();
+            params.insert("offset", &offset_str);
+        }
+
+        if let Some(limit) = limit {
+            limit_str = limit.to_string();
+            params.insert("offset", &limit_str);
+        }
+
+        self.get("https://api.myanimelist.net/v2/anime", params)
+            .await
     }
 
     pub async fn get_anime_id(&self, id: usize) -> Result<Response, reqwest::Error> {
@@ -150,26 +160,35 @@ impl MALClient {
     pub async fn search_manga(
         &self,
         query: &str,
-        limit: usize,
+        limit: Option<usize>,
+        offset: Option<usize>,
         full: bool,
     ) -> Result<Response, reqwest::Error> {
         let mut fields = "titles";
+        let mut offset_str = String::new();
+        let mut limit_str = String::new();
 
         if full {
             fields = MALClient::MANGA_SEARCH_FIELDS;
         }
 
-        let limit_str = limit.to_string();
+        let mut params = hashmap! {
+            "q" => query,
+            "fields" => fields,
+        };
 
-        self.get(
-            "https://api.myanimelist.net/v2/manga",
-            hashmap! {
-                "q" => query,
-                "limit" => &limit_str,
-                "fields" => fields,
-            },
-        )
-        .await
+        if let Some(offset) = offset {
+            offset_str = offset.to_string();
+            params.insert("offset", &offset_str);
+        }
+
+        if let Some(limit) = limit {
+            limit_str = limit.to_string();
+            params.insert("offset", &limit_str);
+        }
+
+        self.get("https://api.myanimelist.net/v2/manga", params)
+            .await
     }
 
     pub async fn get_manga_id(&self, id: usize) -> Result<Response, reqwest::Error> {
