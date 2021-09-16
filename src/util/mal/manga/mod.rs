@@ -40,9 +40,9 @@ impl Manga {
             .await
     }
 
-    pub async fn from_name(query: &str) -> Result<Self, reqwest::Error> {
+    pub async fn from_name(query: &str, nsfw: bool) -> Result<Self, reqwest::Error> {
         Ok(MALClient::from_env()
-            .search_manga(query, Some(1), None, true)
+            .search_manga(query, Some(1), None, nsfw, true)
             .await?
             .json::<SearchResponse<Self>>()
             .await?
@@ -68,6 +68,6 @@ mod test {
 
     #[tokio::test]
     async fn from_name() {
-        let _ = Manga::from_name("Blame").await.unwrap();
+        let _ = Manga::from_name("Blame", true).await.unwrap();
     }
 }

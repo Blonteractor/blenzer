@@ -3,7 +3,6 @@ pub mod structs;
 
 use super::prelude::enums::*;
 use super::prelude::*;
-use reqwest::Response;
 
 use super::MALClient;
 use enums::*;
@@ -36,9 +35,9 @@ impl Anime {
             .await
     }
 
-    pub async fn from_name(query: &str) -> Result<Self, reqwest::Error> {
+    pub async fn from_name(query: &str, nsfw: bool) -> Result<Self, reqwest::Error> {
         Ok(MALClient::from_env()
-            .search_anime(query, Some(1), None, true)
+            .search_anime(query, Some(1), None, nsfw, true)
             .await?
             .json::<SearchResponse<Self>>()
             .await?
@@ -52,35 +51,36 @@ impl Anime {
     pub async fn reload(&mut self) {
         *self = Self::from_id(self.id).await.unwrap();
     }
-    pub async fn search_basic(
-        query: &str,
-        limit: usize,
-    ) -> Result<AnimeBasicSearch, reqwest::Error> {
-        Ok(AnimeBasicSearch::start(
-            MALClient::from_env()
-                .search_anime(query, Some(limit), None, false)
-                .await?,
-        ))
-    }
+    // pub async fn search_basic(
+    //     query: &str,
+    //     limit: usize,
+    //     nsfw: bool,
+    // ) -> Result<AnimeBasicSearch, reqwest::Error> {
+    //     Ok(AnimeBasicSearch::start(
+    //         MALClient::from_env()
+    //             .search_anime(query, Some(limit), None, nsfw, false)
+    //             .await?,
+    //     ))
+    // }
 }
 
-pub struct AnimeBasicSearch {
-    data: Response,
-}
+// pub struct AnimeBasicSearch {
+//     data: Response,
+// }
 
-impl AnimeBasicSearch {
-    pub fn start(response: Response) -> Self {
-        Self { data: response }
-    }
-}
+// impl AnimeBasicSearch {
+//     pub fn start(response: Response) -> Self {
+//         Self { data: response }
+//     }
+// }
 
-impl Iterator for AnimeBasicSearch {
-    type Item = (isize, String);
+// impl Iterator for AnimeBasicSearch {
+//     type Item = (isize, String);
 
-    fn next(&mut self) -> Option<Self::Item> {
-        None
-    }
-}
+//     fn next(&mut self) -> Option<Self::Item> {
+//         None
+//     }
+// }
 
 impl Deref for Anime {
     type Target = BasicMalObject;
@@ -103,12 +103,12 @@ mod test {
 
     #[tokio::test]
     async fn from_name() {
-        let _ = Anime::from_name("Death Note").await.unwrap();
+        let _ = Anime::from_name("Death Note", true).await.unwrap();
     }
 
     #[tokio::test]
     async fn reload() {
-        let mut anime = Anime::from_name("Death Note").await.unwrap();
+        let mut anime = Anime::from_name("Death Note", true).await.unwrap();
         let old_id = anime.id;
         anime.reload().await;
         assert_eq!(anime.id, old_id);

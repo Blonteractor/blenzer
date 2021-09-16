@@ -33,7 +33,7 @@ pub enum GenreName {
     Adventure,
     Comedy,
     Drama,
-    #[serde(rename = "Slice Of Life")]
+    #[serde(rename = "Slice of Life")]
     SliceOfLife,
     Fantasy,
     Magic,
@@ -49,6 +49,9 @@ pub enum GenreName {
     Ecchi,
     Demons,
     Military,
+    #[serde(rename = "Boys Love")]
+    BoysLove,
+    Erotica,
     Harem,
     Josei,
     #[serde(rename = "Martial Arts")]
@@ -87,6 +90,8 @@ pub enum GenreName {
     Yaoi,
     Thriller,
     Suspense,
+    #[serde(rename = "Gender Bender")]
+    GenderBender,
 }
 
 #[derive(Deserialize)]
@@ -104,6 +109,7 @@ pub enum Status {
 pub enum NSFWLevel {
     White,
     Black,
+    Gray,
 }
 
 #[derive(Deserialize)]
@@ -116,4 +122,7 @@ pub enum MediaType {
     Special,
     Manga,
     Manhwa,
+
+    #[serde(rename = "light_novel")]
+    LightNovel,
 }

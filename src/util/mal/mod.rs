@@ -118,19 +118,26 @@ impl MALClient {
         query: &str,
         limit: Option<usize>,
         offset: Option<usize>,
+        nsfw: bool,
         full: bool,
     ) -> Result<Response, reqwest::Error> {
         let mut fields = "titles";
+
+        #[allow(unused_assignments)]
         let mut offset_str = String::new();
+        #[allow(unused_assignments)]
         let mut limit_str = String::new();
 
         if full {
             fields = MALClient::ANIME_SEARCH_FIELDS;
         }
 
+        let nsfw_str = nsfw.to_string();
+
         let mut params = hashmap! {
             "q" => query,
             "fields" => fields,
+            "nsfw" => &nsfw_str
         };
 
         if let Some(offset) = offset {
@@ -162,19 +169,26 @@ impl MALClient {
         query: &str,
         limit: Option<usize>,
         offset: Option<usize>,
+        nsfw: bool,
         full: bool,
     ) -> Result<Response, reqwest::Error> {
         let mut fields = "titles";
+
+        #[allow(unused_assignments)]
         let mut offset_str = String::new();
+        #[allow(unused_assignments)]
         let mut limit_str = String::new();
 
         if full {
             fields = MALClient::MANGA_SEARCH_FIELDS;
         }
 
+        let nsfw_str = nsfw.to_string();
+
         let mut params = hashmap! {
             "q" => query,
             "fields" => fields,
+            "nsfw" => &nsfw_str
         };
 
         if let Some(offset) = offset {
