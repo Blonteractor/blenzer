@@ -52,6 +52,14 @@ impl Manga {
             .unwrap()
             .1)
     }
+
+    pub fn url(&self) -> String {
+        format!(
+            "https://myanimelist.net/manga/{}/{}",
+            self.id,
+            self.title.replace(" ", "_")
+        )
+    }
 }
 
 #[cfg(test)]

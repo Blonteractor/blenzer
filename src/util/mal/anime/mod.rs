@@ -51,6 +51,14 @@ impl Anime {
     pub async fn reload(&mut self) {
         *self = Self::from_id(self.id).await.unwrap();
     }
+
+    pub fn url(&self) -> String {
+        format!(
+            "https://myanimelist.net/anime/{}/{}",
+            self.id,
+            self.title.replace(" ", "_")
+        )
+    }
     // pub async fn search_basic(
     //     query: &str,
     //     limit: usize,
