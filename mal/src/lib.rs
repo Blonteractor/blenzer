@@ -2,6 +2,10 @@ pub mod anime;
 pub mod manga;
 pub mod prelude;
 
+#[allow(unused_imports)]
+#[macro_use]
+extern crate maplit;
+
 use dotenv::dotenv;
 use reqwest::{
     self,

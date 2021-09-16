@@ -1,9 +1,5 @@
 extern crate dotenv;
 
-#[allow(unused_imports)]
-#[macro_use]
-extern crate maplit;
-
 pub mod cogs;
 pub mod util;
 

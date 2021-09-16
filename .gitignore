@@ -1,3 +1,5 @@
-/target
-/.vscode
+target/
+.vscode/
+mal/Cargo.lock
+mal/Sample.json
 .env
