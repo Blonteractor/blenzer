@@ -94,11 +94,11 @@ impl MALClient {
     pub async fn get(
         &self,
         url: &str,
-        params: HashMap<&str, &str>,
+        params: &HashMap<&str, String>,
     ) -> Result<Response, reqwest::Error> {
         self.client
             .get(url)
-            .query(&params)
+            .query(params)
             .headers(self.headers())
             .send()
             .await
@@ -127,11 +127,6 @@ impl MALClient {
     ) -> Result<Response, reqwest::Error> {
         let mut fields = "titles";
 
-        #[allow(unused_assignments)]
-        let mut offset_str = String::new();
-        #[allow(unused_assignments)]
-        let mut limit_str = String::new();
-
         if full {
             fields = MALClient::ANIME_SEARCH_FIELDS;
         }
@@ -139,30 +134,28 @@ impl MALClient {
         let nsfw_str = nsfw.to_string();
 
         let mut params = hashmap! {
-            "q" => query,
-            "fields" => fields,
-            "nsfw" => &nsfw_str
+            "q" => query.to_string(),
+            "fields" => fields.to_string(),
+            "nsfw" => nsfw_str.to_string()
         };
 
         if let Some(offset) = offset {
-            offset_str = offset.to_string();
-            params.insert("offset", &offset_str);
+            params.insert("offset", offset.to_string());
         }
 
         if let Some(limit) = limit {
-            limit_str = limit.to_string();
-            params.insert("offset", &limit_str);
+            params.insert("offset", limit.to_string());
         }
 
-        self.get("https://api.myanimelist.net/v2/anime", params)
+        self.get("https://api.myanimelist.net/v2/anime", &params)
             .await
     }
 
     pub async fn get_anime_id(&self, id: usize) -> Result<Response, reqwest::Error> {
         self.get(
             format!("https://api.myanimelist.net/v2/anime/{}", id).as_str(),
-            hashmap! {
-                "fields" => MALClient::ANIME_SEARCH_FIELDS,
+            &hashmap! {
+                "fields" => MALClient::ANIME_SEARCH_FIELDS.to_string(),
             },
         )
         .await
@@ -178,11 +171,6 @@ impl MALClient {
     ) -> Result<Response, reqwest::Error> {
         let mut fields = "titles";
 
-        #[allow(unused_assignments)]
-        let mut offset_str = String::new();
-        #[allow(unused_assignments)]
-        let mut limit_str = String::new();
-
         if full {
             fields = MALClient::MANGA_SEARCH_FIELDS;
         }
@@ -190,30 +178,28 @@ impl MALClient {
         let nsfw_str = nsfw.to_string();
 
         let mut params = hashmap! {
-            "q" => query,
-            "fields" => fields,
-            "nsfw" => &nsfw_str
+            "q" => query.to_string(),
+            "fields" => fields.to_string(),
+            "nsfw" => nsfw.to_string()
         };
 
         if let Some(offset) = offset {
-            offset_str = offset.to_string();
-            params.insert("offset", &offset_str);
+            params.insert("offset", offset.to_string());
         }
 
         if let Some(limit) = limit {
-            limit_str = limit.to_string();
-            params.insert("offset", &limit_str);
+            params.insert("offset", limit.to_string());
         }
 
-        self.get("https://api.myanimelist.net/v2/manga", params)
+        self.get("https://api.myanimelist.net/v2/manga", &params)
             .await
     }
 
     pub async fn get_manga_id(&self, id: usize) -> Result<Response, reqwest::Error> {
         self.get(
             format!("https://api.myanimelist.net/v2/manga/{}", id).as_str(),
-            hashmap! {
-                "fields" => MALClient::MANGA_SEARCH_FIELDS,
+            &hashmap! {
+                "fields" => MALClient::MANGA_SEARCH_FIELDS.to_string(),
             },
         )
         .await
@@ -236,9 +222,9 @@ mod test {
         let response = mal_cofnig
             .get(
                 "https://api.myanimelist.net/v2/anime",
-                hashmap! {
-                    "q" => "Death Note",
-                    "limit" => "1"
+                &hashmap! {
+                    "q" => "Death Note".to_string(),
+                    "limit" => "1".to_string()
                 },
             )
             .await

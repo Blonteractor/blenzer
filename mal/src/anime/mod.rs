@@ -7,6 +7,7 @@ use super::prelude::*;
 use super::MALClient;
 use enums::*;
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::ops::Deref;
 use structs::*;
 
@@ -59,33 +60,45 @@ impl Anime {
             self.title.replace(" ", "_")
         )
     }
-    // pub async fn search_basic(
-    //     query: &str,
-    //     limit: usize,
-    //     nsfw: bool,
-    // ) -> Result<AnimeBasicSearch, reqwest::Error> {
-    //     Ok(AnimeBasicSearch::start(
-    //         MALClient::from_env()
-    //             .search_anime(query, Some(limit), None, nsfw, false)
-    //             .await?,
-    //     ))
-    // }
+    pub async fn search_basic(
+        query: &str,
+        limit: usize,
+        nsfw: bool,
+    ) -> Result<AnimeBasicSearch, reqwest::Error> {
+        Ok(AnimeBasicSearch::start(query.to_string(), limit, nsfw))
+    }
 }
 
-// pub struct AnimeBasicSearch {
-//     data: Response,
-// }
+pub struct AnimeBasicSearch {
+    current_offset: usize,
+    client: MALClient,
+    params: HashMap<&'static str, String>,
+}
 
-// impl AnimeBasicSearch {
-//     pub fn start(response: Response) -> Self {
-//         Self { data: response }
-//     }
-// }
+impl AnimeBasicSearch {
+    pub fn start(query: String, limit: usize, nsfw: bool) -> Self {
+        let params = hashmap! {
+            "q" => query,
+            "limit" => 1.to_string(),
+            "nsfw" => nsfw.to_string(),
+            "offset" => 0.to_string()
+        };
+        Self {
+            current_offset: 0,
+            client: MALClient::from_env(),
+            params,
+        }
+    }
+}
 
-// impl Iterator for AnimeBasicSearch {
+// impl f for AnimeBasicSearch {
 //     type Item = (isize, String);
 
 //     fn next(&mut self) -> Option<Self::Item> {
+//         let result = self
+//             .client
+//             .get("https://api.myanimelist.net/v2/anime", &self.params);
+
 //         None
 //     }
 // }
