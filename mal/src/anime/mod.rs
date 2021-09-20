@@ -6,10 +6,15 @@ use super::prelude::*;
 
 use super::MALClient;
 use enums::*;
+use futures;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::ops::Deref;
 use structs::*;
+
+use std::pin::Pin;
+use std::task::Context;
+use std::task::Poll;
 
 #[derive(Deserialize)]
 pub struct Anime {
@@ -91,6 +96,13 @@ impl AnimeBasicSearch {
     }
 }
 
+impl futures::stream::Stream for AnimeBasicSearch {
+    type Item = (usize, String);
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        Poll::Ready(None)
+    }
+}
 // impl f for AnimeBasicSearch {
 //     type Item = (isize, String);
 
