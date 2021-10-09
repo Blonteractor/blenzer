@@ -12,9 +12,11 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use structs::*;
 
-use std::pin::Pin;
-use std::task::Context;
-use std::task::Poll;
+// use futures::Future;
+// use futures::FutureExt;
+// use std::pin::Pin;
+// use std::task::Context;
+// use std::task::Poll;
 
 #[derive(Deserialize)]
 pub struct Anime {
@@ -65,18 +67,23 @@ impl Anime {
             self.title.replace(" ", "_")
         )
     }
-    pub async fn search_basic(
-        query: &str,
-        limit: usize,
-        nsfw: bool,
-    ) -> Result<AnimeBasicSearch, reqwest::Error> {
-        Ok(AnimeBasicSearch::start(query.to_string(), limit, nsfw))
-    }
+    // pub async fn search_basic(
+    //     query: &str,
+    //     limit: usize,
+    //     nsfw: bool,
+    // ) -> Result<AnimeBasicSearch, reqwest::Error> {
+    //     Ok(AnimeBasicSearch::start(query.to_string(), limit, nsfw))
+    // }
 }
 
 pub struct AnimeBasicSearch {
+    #[allow(dead_code)]
     current_offset: usize,
+    #[allow(dead_code)]
     client: MALClient,
+    #[allow(dead_code)]
+    limit: usize,
+    #[allow(dead_code)]
     params: HashMap<&'static str, String>,
 }
 
@@ -92,26 +99,21 @@ impl AnimeBasicSearch {
             current_offset: 0,
             client: MALClient::from_env(),
             params,
+            limit,
         }
     }
 }
 
-impl futures::stream::Stream for AnimeBasicSearch {
-    type Item = (usize, String);
+// impl futures::stream::Stream for AnimeBasicSearch {
+//     type Item = (usize, String);
 
-    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        Poll::Ready(None)
-    }
-}
-// impl f for AnimeBasicSearch {
-//     type Item = (isize, String);
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         let result = self
-//             .client
-//             .get("https://api.myanimelist.net/v2/anime", &self.params);
-
-//         None
+//     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+//         let x = self.client.get("", &self.params);
+//         let mut result = futures::pin_mut!(x);
+//         match result.as_mut().poll(cx) {
+//             Poll::Ready(e) => Poll::Ready(None),
+//             Poll::Pending => Poll::Pending,
+//         }
 //     }
 // }
 

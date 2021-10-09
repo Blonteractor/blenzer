@@ -22,6 +22,7 @@ use serenity::model::{
 
 use cogs::meta::*;
 use cogs::utility::*;
+use cogs::weeb::*;
 
 const BOT_PREFIX: &str = "bl ";
 
