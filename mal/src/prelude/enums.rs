@@ -77,6 +77,8 @@ pub enum GenreName {
     Samurai,
     #[serde(rename = "Shoujou Ai")]
     ShoujoAi,
+    #[serde(rename = "Girls Love")]
+    GirlsLove,
     Shounen,
     #[serde(rename = "Shounen Ai")]
     ShounenAi,
@@ -122,7 +124,11 @@ pub enum MediaType {
     Special,
     Manga,
     Manhwa,
+    Novel,
 
     #[serde(rename = "light_novel")]
     LightNovel,
+
+    #[serde(rename = "one_shot")]
+    OneShot,
 }

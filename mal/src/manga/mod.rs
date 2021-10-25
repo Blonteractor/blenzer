@@ -15,12 +15,12 @@ pub struct Manga {
     pub data: BasicMalObject,
 
     #[serde(rename = "num_chapters")]
-    pub chapters: usize,
+    pub chapters: Option<usize>,
 
     #[serde(rename = "num_volumes")]
-    pub volumes: usize,
+    pub volumes: Option<usize>,
 
-    pub authors: Vec<Author>,
+    pub authors: Option<Vec<Author>>,
 }
 
 impl Deref for Manga {
@@ -60,6 +60,35 @@ impl Manga {
             self.title.replace(" ", "_")
         )
     }
+
+    pub async fn search_basic(
+        query: &str,
+        limit: usize,
+        nsfw: bool,
+    ) -> Result<Vec<Self>, reqwest::Error> {
+        Ok(MALClient::from_env()
+            .get(
+                "https://api.myanimelist.net/v2/manga",
+                &hashmap! {
+                    "q" => query.to_string(),
+                    "fields" => "title".to_string(),
+                    "nsfw" => nsfw.to_string(),
+                    "limit" => limit.to_string()
+                },
+            )
+            .await
+            .unwrap()
+            .json::<SearchResponse<Self>>()
+            .await?
+            .data
+            .into_iter()
+            .map(|result| result.into_values().next().unwrap())
+            .collect::<Vec<Self>>())
+    }
+
+    pub async fn reload(&mut self) {
+        *self = Self::from_id(self.id).await.unwrap();
+    }
 }
 
 #[cfg(test)]
@@ -77,5 +106,20 @@ mod test {
     #[tokio::test]
     async fn from_name() {
         let _ = Manga::from_name("Blame", true).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn reload() {
+        let mut manga = Manga::from_name("Death Note", true).await.unwrap();
+        let old_id = manga.id;
+        manga.reload().await;
+        assert_eq!(manga.id, old_id);
+    }
+
+    #[tokio::test]
+    async fn search_basic() {
+        let results = Manga::search_basic("highschool", 6, true).await.unwrap();
+
+        assert_eq!(results.len(), 6);
     }
 }

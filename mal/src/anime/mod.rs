@@ -6,17 +6,9 @@ use super::prelude::*;
 
 use super::MALClient;
 use enums::*;
-use futures;
 use serde::Deserialize;
-use std::collections::HashMap;
 use std::ops::Deref;
 use structs::*;
-
-// use futures::Future;
-// use futures::FutureExt;
-// use std::pin::Pin;
-// use std::task::Context;
-// use std::task::Poll;
 
 #[derive(Deserialize)]
 pub struct Anime {
@@ -67,55 +59,32 @@ impl Anime {
             self.title.replace(" ", "_")
         )
     }
-    // pub async fn search_basic(
-    //     query: &str,
-    //     limit: usize,
-    //     nsfw: bool,
-    // ) -> Result<AnimeBasicSearch, reqwest::Error> {
-    //     Ok(AnimeBasicSearch::start(query.to_string(), limit, nsfw))
-    // }
-}
 
-pub struct AnimeBasicSearch {
-    #[allow(dead_code)]
-    current_offset: usize,
-    #[allow(dead_code)]
-    client: MALClient,
-    #[allow(dead_code)]
-    limit: usize,
-    #[allow(dead_code)]
-    params: HashMap<&'static str, String>,
-}
-
-impl AnimeBasicSearch {
-    pub fn start(query: String, limit: usize, nsfw: bool) -> Self {
-        let params = hashmap! {
-            "q" => query,
-            "limit" => 1.to_string(),
-            "nsfw" => nsfw.to_string(),
-            "offset" => 0.to_string()
-        };
-        Self {
-            current_offset: 0,
-            client: MALClient::from_env(),
-            params,
-            limit,
-        }
+    pub async fn search_basic(
+        query: &str,
+        limit: usize,
+        nsfw: bool,
+    ) -> Result<Vec<Self>, reqwest::Error> {
+        Ok(MALClient::from_env()
+            .get(
+                "https://api.myanimelist.net/v2/anime",
+                &hashmap! {
+                    "q" => query.to_string(),
+                    "fields" => "title".to_string(),
+                    "nsfw" => nsfw.to_string(),
+                    "limit" => limit.to_string()
+                },
+            )
+            .await
+            .unwrap()
+            .json::<SearchResponse<Self>>()
+            .await?
+            .data
+            .into_iter()
+            .map(|result| result.into_values().next().unwrap())
+            .collect::<Vec<Self>>())
     }
 }
-
-// impl futures::stream::Stream for AnimeBasicSearch {
-//     type Item = (usize, String);
-
-//     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-//         let x = self.client.get("", &self.params);
-//         let mut result = futures::pin_mut!(x);
-//         match result.as_mut().poll(cx) {
-//             Poll::Ready(e) => Poll::Ready(None),
-//             Poll::Pending => Poll::Pending,
-//         }
-//     }
-// }
 
 impl Deref for Anime {
     type Target = BasicMalObject;
@@ -147,5 +116,12 @@ mod test {
         let old_id = anime.id;
         anime.reload().await;
         assert_eq!(anime.id, old_id);
+    }
+
+    #[tokio::test]
+    async fn search_basic() {
+        let results = Anime::search_basic("highschool", 6, true).await.unwrap();
+
+        assert_eq!(results.len(), 6);
     }
 }

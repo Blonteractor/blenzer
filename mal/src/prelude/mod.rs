@@ -37,7 +37,7 @@ pub struct BasicMalObject {
     pub updated_at: Option<JSONDateTime>,
     pub media_type: Option<MediaType>,
     pub status: Option<Status>,
-    pub genres: Vec<Genre>,
+    pub genres: Option<Vec<Genre>>,
     pub rating: Option<Rating>,
     pub pictures: Option<Vec<Picture>>,
     pub background: Option<String>,
@@ -46,4 +46,11 @@ pub struct BasicMalObject {
 #[derive(Deserialize)]
 pub struct SearchResponse<T> {
     pub data: Vec<HashMap<String, T>>,
+}
+
+impl<T> std::ops::Deref for SearchResponse<T> {
+    type Target = Vec<HashMap<String, T>>;
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
 }

@@ -76,7 +76,7 @@ impl MALClient {
             .send()
             .await;
 
-        let response_data = response?.json::<HashMap<String, String>>().await.unwrap();
+        let response_data = response?.json::<HashMap<String, String>>().await?;
 
         self.access_token = response_data
             .get("access_token")
@@ -174,8 +174,6 @@ impl MALClient {
         if full {
             fields = MALClient::MANGA_SEARCH_FIELDS;
         }
-
-        let nsfw_str = nsfw.to_string();
 
         let mut params = hashmap! {
             "q" => query.to_string(),
