@@ -3,3 +3,4 @@ target/
 mal/Cargo.lock
 mal/Sample.json
 .env
+git_token.txt
