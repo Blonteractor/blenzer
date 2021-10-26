@@ -22,6 +22,7 @@ use serenity::model::{
 
 use cogs::meta::*;
 use cogs::utility::*;
+use cogs::weeb::*;
 
 const BOT_PREFIX: &str = "bl ";
 
@@ -73,7 +74,8 @@ async fn main() {
         .on_dispatch_error(command_error_hook)
         .help(&MY_HELP)
         .group(&META_GROUP)
-        .group(&UTILITY_GROUP);
+        .group(&UTILITY_GROUP)
+        .group(&WEEB_GROUP);
 
     //# Build the client using the framework and the token
     let mut client = Client::builder(token)
