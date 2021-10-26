@@ -7,18 +7,14 @@ use serenity::prelude::*;
 
 #[command]
 async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
-    if let Err(e) = msg.reply(ctx, "Pong!").await {
-        println!("error in msg: {:?}", e);
-    }
+    msg.reply(ctx, "Pong!").await?;
 
     Ok(())
 }
 
 #[command]
 async fn say(ctx: &Context, msg: &Message) -> CommandResult {
-    if let Err(e) = msg.reply(ctx, "Yo!").await {
-        println!("error in msg: {:?}", e);
-    }
+    msg.reply(ctx, "Yo!").await?;
 
     Ok(())
 }

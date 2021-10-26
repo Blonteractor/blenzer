@@ -1,5 +1,5 @@
 use serenity::client::Context;
-use serenity::framework::standard::Args;
+use serenity::framework::standard::{ArgError, Args};
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 
@@ -14,7 +14,10 @@ pub async fn member<'a>(
     loop {
         match args.single::<UserId>() {
             Ok(id) => results.push(ctx.http.get_member(msg.guild_id.unwrap().0, id.0).await),
-            Err(_) => {
+            Err(e) => {
+                if let ArgError::Parse(_) = e {
+                    args.advance();
+                }
                 if args.is_empty() {
                     args.restore();
                     if args.is_empty() && is_empty_author {

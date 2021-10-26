@@ -71,7 +71,7 @@ async fn main() {
     let framework = StandardFramework::new()
         .configure(|c| c.prefix(BOT_PREFIX))
         .unrecognised_command(unrecognised_command_hook)
-        .on_dispatch_error(command_error_hook)
+        //.on_dispatch_error(command_error_hook)
         .help(&MY_HELP)
         .group(&META_GROUP)
         .group(&UTILITY_GROUP)
