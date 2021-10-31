@@ -1,6 +1,7 @@
 use serde::Deserialize;
+use std::fmt::Display;
 
-#[derive(Deserialize)]
+#[derive(enum_display_derive::Display, Deserialize)]
 #[serde(rename_all(deserialize = "snake_case"))]
 pub enum Source {
     Original,
@@ -8,13 +9,15 @@ pub enum Source {
     Game,
     LightNovel,
     VisualNovel,
+    NA,
 }
 
-#[derive(Deserialize)]
+#[derive(enum_display_derive::Display, Deserialize)]
 #[serde(rename_all(deserialize = "snake_case"))]
 pub enum Season {
     Spring,
     Summer,
     Fall,
     Winter,
+    NA,
 }

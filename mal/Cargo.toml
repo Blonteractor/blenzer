@@ -13,4 +13,5 @@ serde = {version="1.0.130", features=["derive"]}
 futures = "0.3.17"
 chrono = {version="0.4", features=["serde"]}
 maplit = "1.0.2"
+enum-display-derive = "0.1.1"
 tokio = {version= "1.10.1", features=["macros"]}

@@ -22,3 +22,12 @@ pub struct StartSeason {
     pub year: usize,
     pub season: Season,
 }
+
+impl std::default::Default for StartSeason {
+    fn default() -> Self {
+        StartSeason {
+            year: 0,
+            season: Season::NA,
+        }
+    }
+}

@@ -1,6 +1,7 @@
 use serde::Deserialize;
+use std::fmt::Display;
 
-#[derive(Deserialize)]
+#[derive(enum_display_derive::Display, Deserialize)]
 #[serde(rename_all(deserialize = "lowercase"))]
 pub enum Rating {
     #[serde(rename = "pg_13")]
@@ -13,9 +14,10 @@ pub enum Rating {
     G,
     #[serde(rename = "pg")]
     PG,
+    NA,
 }
 
-#[derive(Deserialize)]
+#[derive(enum_display_derive::Display, Deserialize)]
 #[serde(rename_all(deserialize = "snake_case"))]
 pub enum DayOfTheWeek {
     Monday,
@@ -25,9 +27,10 @@ pub enum DayOfTheWeek {
     Friday,
     Saturday,
     Sunday,
+    NA,
 }
 
-#[derive(Deserialize)]
+#[derive(enum_display_derive::Display, Deserialize)]
 pub enum GenreName {
     Action,
     Adventure,
@@ -94,9 +97,10 @@ pub enum GenreName {
     Suspense,
     #[serde(rename = "Gender Bender")]
     GenderBender,
+    NA,
 }
 
-#[derive(Deserialize)]
+#[derive(enum_display_derive::Display, Deserialize)]
 #[serde(rename_all(deserialize = "snake_case"))]
 pub enum Status {
     FinishedAiring,
@@ -104,17 +108,19 @@ pub enum Status {
     CurrentlyPublishing,
     Finished,
     OnHiatus,
+    NA,
 }
 
-#[derive(Deserialize)]
+#[derive(enum_display_derive::Display, Deserialize)]
 #[serde(rename_all(deserialize = "snake_case"))]
 pub enum NSFWLevel {
     White,
     Black,
     Gray,
+    NA,
 }
 
-#[derive(Deserialize)]
+#[derive(enum_display_derive::Display, Deserialize)]
 #[serde(rename_all(deserialize = "lowercase"))]
 pub enum MediaType {
     TV,
@@ -131,4 +137,5 @@ pub enum MediaType {
 
     #[serde(rename = "one_shot")]
     OneShot,
+    NA,
 }
