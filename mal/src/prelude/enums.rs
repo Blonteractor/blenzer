@@ -14,6 +14,7 @@ pub enum Rating {
     G,
     #[serde(rename = "pg")]
     PG,
+    RX,
     NA,
 }
 

@@ -1,4 +1,5 @@
 use rand::seq::SliceRandom;
+use serenity::builder::CreateEmbed;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 use serenity::utils::Color;
@@ -38,41 +39,22 @@ async fn anime(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         .timeout(Duration::new(30, 0))
         .await
     {
-        if let Ok(choice_int) = choice_msg.content.parse::<usize>() {
+        if let Ok(mut choice_int) = choice_msg.content.parse::<usize>() {
             if choice_int > 0 && choice_int <= search_results.len() {
                 //SAFETY: Already checked bounds manually kekw ratio
-                let anime = unsafe { search_results.get_unchecked_mut(choice_int - 1) };
+                let mut anime = unsafe { search_results.get_unchecked_mut(choice_int - 1) };
                 anime.reload().await;
                 choice_msg.delete(ctx).await?;
 
-                let synopsis_unshortened = format!(
-                    "{} \n\n {}",
-                    anime.synopsis.as_ref().unwrap(),
-                    anime.background.as_ref().unwrap()
-                );
+                let (mut anime_embed_1, mut anime_embed_2) = anime_embed(anime);
 
-                let synopsis: String = if synopsis_unshortened.len() > 5500 {
-                    String::from("...") + &synopsis_unshortened[0..5497]
-                } else {
-                    synopsis_unshortened
-                };
-
-                let title = format!(
-                    "{} `{}`",
-                    &anime.title,
-                    &anime.alternative_titles.as_ref().unwrap().ja
-                );
+                let mut cached = Vec::new();
+                cached.push(choice_int);
 
                 sent_choices_message
                     .edit(ctx, |m| {
                         m.content("")
-                            .add_embed(|e| {
-                                e.title(&title)
-                                    .url(&anime.url())
-                                    .description(synopsis)
-                                    .image(&anime.cover_art.large)
-                                    .color(Color::from_rgb(4, 105, 207))
-                            })
+                            .set_embed(anime_embed_1.clone())
                             .components(|c| {
                                 c.create_action_row(|a| {
                                     a.create_button(|b| {
@@ -108,124 +90,39 @@ async fn anime(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                 while let Some(interaction) = interaction_stream.next().await {
                     if interaction.data.custom_id == "anime_details" {
                         sent_choices_message
-                            .edit(ctx, |m| {
-                                m.embed(|e| {
-                                    e.title(&title)
-                                        .url(&anime.url())
-                                        .image(
-                                            &anime
-                                                .pictures
-                                                .as_ref()
-                                                .unwrap()
-                                                .choose(&mut rand::thread_rng())
-                                                .unwrap()
-                                                .large,
-                                        )
-                                        .color(Color::from_rgb(4, 105, 207))
-                                        .field(
-                                            "Score",
-                                            format!("`{}`", anime.score.unwrap_or(0.0)),
-                                            true,
-                                        )
-                                        .field(
-                                            "Rank",
-                                            format!("`{}`", anime.rank.unwrap_or(0)),
-                                            true,
-                                        )
-                                        .field(
-                                            "Popularity",
-                                            format!("`{}`", anime.popularity.unwrap_or(0)),
-                                            true,
-                                        )
-                                        .field(
-                                            "Number of Episodes",
-                                            format!("`{}`", anime.episodes.unwrap_or(0)),
-                                            true,
-                                        )
-                                        .field(
-                                            "Season",
-                                            {
-                                                if let Some(ref season) = anime.start_season {
-                                                    format!("`{} {}`", season.season, season.year)
-                                                } else {
-                                                    String::from("NA")
-                                                }
-                                            },
-                                            true,
-                                        )
-                                        .field(
-                                            "Broadcast",
-                                            {
-                                                if let Some(ref broadcast) = anime.broadcast {
-                                                    format!(
-                                                        "`{} {}`",
-                                                        broadcast.day_of_the_week,
-                                                        broadcast.start_time
-                                                    )
-                                                } else {
-                                                    String::from("`NA`")
-                                                }
-                                            },
-                                            true,
-                                        )
-                                        .field("Studio(s)", "`TODO`", true)
-                                        .field(
-                                            "Age Rating",
-                                            format!(
-                                                "`{}`",
-                                                anime
-                                                    .rating
-                                                    .as_ref()
-                                                    .unwrap_or(&mal::prelude::enums::Rating::NA)
-                                            ),
-                                            true,
-                                        )
-                                        .field(
-                                            "Release",
-                                            format!(
-                                                "`{}`",
-                                                anime.start.as_ref().unwrap_or(&String::from("NA"))
-                                            ),
-                                            true,
-                                        )
-                                        .field(
-                                            "End",
-                                            format!(
-                                                "`{}`",
-                                                anime.end.as_ref().unwrap_or(&String::from("NA"))
-                                            ),
-                                            true,
-                                        )
-                                        .field(
-                                            "Status",
-                                            format!(
-                                                "`{}`",
-                                                anime
-                                                    .status
-                                                    .as_ref()
-                                                    .unwrap_or(&mal::prelude::enums::Status::NA)
-                                            ),
-                                            true,
-                                        )
-                                        .field(
-                                            "Genres",
-                                            {
-                                                if let Some(genres) = &anime.genres {
-                                                    genres
-                                                        .iter()
-                                                        .map(|g| format!("`{}`", &g.name))
-                                                        .collect::<Vec<String>>()
-                                                        .join(" | ")
-                                                } else {
-                                                    String::from("NA")
-                                                }
-                                            },
-                                            true,
-                                        )
-                                })
-                            })
+                            .edit(ctx, |m| m.set_embed(anime_embed_2.clone()))
+                            .await?;
+                    } else if interaction.data.custom_id == "anime_synopsis" {
+                        sent_choices_message
+                            .edit(ctx, |m| m.set_embed(anime_embed_1.clone()))
+                            .await?;
+                    } else {
+                        if interaction.data.custom_id == "anime_next" {
+                            choice_int += 1;
+                            if choice_int > search_results.len() {
+                                choice_int = 1;
+                            }
+                        } else if interaction.data.custom_id == "anime_prev" {
+                            choice_int -= 1;
+                            if choice_int > 1 {
+                                choice_int = search_results.len();
+                            }
+                        }
+
+                        //SAFETY: Already checked bounds manually kekw ratio
+                        anime = unsafe { search_results.get_unchecked_mut(choice_int - 1) };
+
+                        if !cached.contains(&choice_int) {
+                            anime.reload().await;
+                        }
+                        let anime_embeds = anime_embed(anime);
+                        anime_embed_1 = anime_embeds.0;
+                        anime_embed_2 = anime_embeds.1;
+                        sent_choices_message
+                            .edit(ctx, |m| m.set_embed(anime_embed_1.clone()))
                             .await?;
                     }
+
                     interaction.defer(ctx).await?;
                 }
             } else {
@@ -242,6 +139,133 @@ async fn anime(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         msg.channel_id.send_message(ctx, |c| c.content("I got no response sadly, try refining your search term if you didn't find your anime.")).await?;
     }
     Ok(())
+}
+
+fn anime_embed(anime: &Anime) -> (CreateEmbed, CreateEmbed) {
+    let synopsis_unshortened = format!(
+        "{} \n\n {}",
+        anime.synopsis.as_ref().unwrap(),
+        anime.background.as_ref().unwrap()
+    );
+
+    let synopsis: String = if synopsis_unshortened.len() > 5500 {
+        String::from("...") + &synopsis_unshortened[0..5497]
+    } else {
+        synopsis_unshortened
+    };
+
+    let title = format!(
+        "{} `{}`",
+        &anime.title,
+        &anime.alternative_titles.as_ref().unwrap().ja
+    );
+
+    let page1 = CreateEmbed::default()
+        .title(&title)
+        .url(&anime.url())
+        .description(synopsis)
+        .image(&anime.cover_art.large)
+        .color(Color::from_rgb(4, 105, 207))
+        .to_owned();
+
+    let page2 = CreateEmbed::default()
+        .title(&title)
+        .url(&anime.url())
+        .image(
+            &anime
+                .pictures
+                .as_ref()
+                .unwrap()
+                .choose(&mut rand::thread_rng())
+                .unwrap()
+                .large,
+        )
+        .color(Color::from_rgb(4, 105, 207))
+        .field("Score", format!("`{}`", anime.score.unwrap_or(0.0)), true)
+        .field("Rank", format!("`{}`", anime.rank.unwrap_or(0)), true)
+        .field(
+            "Popularity",
+            format!("`{}`", anime.popularity.unwrap_or(0)),
+            true,
+        )
+        .field(
+            "Number of Episodes",
+            format!("`{}`", anime.episodes.unwrap_or(0)),
+            true,
+        )
+        .field(
+            "Season",
+            {
+                if let Some(ref season) = anime.start_season {
+                    format!("`{} {}`", season.season, season.year)
+                } else {
+                    String::from("NA")
+                }
+            },
+            true,
+        )
+        .field(
+            "Broadcast",
+            {
+                if let Some(ref broadcast) = anime.broadcast {
+                    format!("`{} {}`", broadcast.day_of_the_week, broadcast.start_time)
+                } else {
+                    String::from("`NA`")
+                }
+            },
+            true,
+        )
+        .field("Studio(s)", "`TODO`", true)
+        .field(
+            "Age Rating",
+            format!(
+                "`{}`",
+                anime
+                    .rating
+                    .as_ref()
+                    .unwrap_or(&mal::prelude::enums::Rating::NA)
+            ),
+            true,
+        )
+        .field(
+            "Release",
+            format!("`{}`", anime.start.as_ref().unwrap_or(&String::from("NA"))),
+            true,
+        )
+        .field(
+            "End",
+            format!("`{}`", anime.end.as_ref().unwrap_or(&String::from("NA"))),
+            true,
+        )
+        .field(
+            "Status",
+            format!(
+                "`{}`",
+                anime
+                    .status
+                    .as_ref()
+                    .unwrap_or(&mal::prelude::enums::Status::NA)
+            ),
+            true,
+        )
+        .field(
+            "Genres",
+            {
+                if let Some(genres) = &anime.genres {
+                    genres
+                        .iter()
+                        .map(|g| format!("`{}`", &g.name))
+                        .collect::<Vec<String>>()
+                        .join(" | ")
+                } else {
+                    String::from("NA")
+                }
+            },
+            true,
+        )
+        .to_owned();
+
+    (page1, page2)
 }
 #[group]
 #[commands(anime)]
