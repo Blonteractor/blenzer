@@ -67,6 +67,7 @@ dependencies = [
  "dotenv",
  "mal",
  "num-traits",
+ "rand 0.8.4",
  "serenity",
  "tokio",
 ]
@@ -133,8 +134,7 @@ dependencies = [
 [[package]]
 name = "command_attr"
 version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a6c3666f685cb1efc0628b8c984dbad9c372d080450736c7732089c385ed81d"
+source = "git+https://github.com/serenity-rs/serenity?branch=current#c322657acaae0624f893ae4b8258b7da30e43501"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -197,6 +197,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80df024fbc5ac80f87dfef0d9f5209a252f2a497f7f42944cff24d8253cac065"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "enum-display-derive"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f16ef37b2a9b242295d61a154ee91ae884afff6b8b933b486b12481cc58310ca"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -566,6 +577,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "dotenv",
+ "enum-display-derive",
  "futures",
  "maplit",
  "num-traits",
@@ -1083,8 +1095,7 @@ dependencies = [
 [[package]]
 name = "serenity"
 version = "0.10.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6275d443266aedf2be507a245ddc23db0c07b1b99774e16f3c879e96a78b067a"
+source = "git+https://github.com/serenity-rs/serenity?branch=current#c322657acaae0624f893ae4b8258b7da30e43501"
 dependencies = [
  "async-trait",
  "async-tungstenite",

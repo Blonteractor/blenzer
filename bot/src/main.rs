@@ -10,6 +10,7 @@ use dotenv::dotenv;
 
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
+use serenity::framework::standard::CommandError;
 use serenity::framework::standard::{
     help_commands,
     macros::{help, hook},
@@ -61,17 +62,30 @@ async fn command_error_hook(_: &Context, _: &Message, error: DispatchError) {
     eprintln!("Error occured in command: {:?}", error)
 }
 
+#[hook]
+async fn after_hook(_: &Context, _: &Message, cmd_name: &str, error: Result<(), CommandError>) {
+    //  Print out an error if it happened
+    if let Err(why) = error {
+        println!("Error in {}: {:?}", cmd_name, why);
+    }
+}
+
 #[tokio::main]
 async fn main() {
     dotenv().ok();
 
     let token = env::var("DISCORD_TOKEN").unwrap();
+    let application_id = env::var("DISCORD_APPLICATION_ID")
+        .unwrap()
+        .parse::<u64>()
+        .unwrap();
 
     //# Build the framework (setting prefix, command hooks, etc)
     let framework = StandardFramework::new()
         .configure(|c| c.prefix(BOT_PREFIX))
         .unrecognised_command(unrecognised_command_hook)
-        //.on_dispatch_error(command_error_hook)
+        .on_dispatch_error(command_error_hook)
+        .after(after_hook)
         .help(&MY_HELP)
         .group(&META_GROUP)
         .group(&UTILITY_GROUP)
@@ -81,6 +95,7 @@ async fn main() {
     let mut client = Client::builder(token)
         .event_handler(Handler)
         .framework(framework)
+        .application_id(application_id)
         .await
         .expect("Error creating client.");
 
