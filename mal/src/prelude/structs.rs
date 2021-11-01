@@ -8,6 +8,12 @@ pub struct Genre {
     pub name: GenreName,
 }
 
+impl ToString for Genre {
+    fn to_string(&self) -> String {
+        self.name.to_string()
+    }
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all(deserialize = "snake_case"))]
 pub struct Picture {

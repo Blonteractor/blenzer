@@ -9,6 +9,12 @@ pub struct Studio {
     pub name: String,
 }
 
+impl ToString for Studio {
+    fn to_string(&self) -> String {
+        self.name.clone()
+    }
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all(deserialize = "snake_case"))]
 pub struct Broadcast {

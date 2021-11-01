@@ -21,6 +21,7 @@ pub struct Anime {
     pub broadcast: Option<Broadcast>,
     pub source: Option<Source>,
     pub rating: Option<Rating>,
+    pub studios: Option<Vec<Studio>>,
 
     #[serde(rename = "average_episode_duration")]
     pub episode_duration: Option<usize>,

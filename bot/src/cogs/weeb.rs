@@ -1,5 +1,7 @@
+use mal::manga::Manga;
 use rand::seq::SliceRandom;
 use serenity::builder::CreateEmbed;
+use serenity::constants::EMBED_MAX_LENGTH;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 use serenity::utils::Color;
@@ -141,6 +143,38 @@ async fn anime(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     Ok(())
 }
 
+fn manga_embed(manga: &Manga) -> (CreateEmbed, CreateEmbed) {
+    let synopsis_unshortened = format!(
+        "{} \n\n {}",
+        manga.synopsis.as_ref().unwrap(),
+        manga.background.as_ref().unwrap()
+    );
+
+    let synopsis: String = if synopsis_unshortened.len() > EMBED_MAX_LENGTH {
+        String::from("...") + &synopsis_unshortened[0..(EMBED_MAX_LENGTH - 5)]
+    } else {
+        synopsis_unshortened
+    };
+
+    let title = format!(
+        "{} `{}`",
+        &manga.title,
+        &manga.alternative_titles.as_ref().unwrap().ja
+    );
+
+    let page1 = CreateEmbed::default()
+        .title(&title)
+        .url(&manga.url())
+        .description(synopsis)
+        .image(&manga.cover_art.large)
+        .color(Color::from_rgb(4, 105, 207))
+        .to_owned();
+
+    let page2 = CreateEmbed::default();
+
+    (page1, page2)
+}
+
 fn anime_embed(anime: &Anime) -> (CreateEmbed, CreateEmbed) {
     let synopsis_unshortened = format!(
         "{} \n\n {}",
@@ -148,8 +182,8 @@ fn anime_embed(anime: &Anime) -> (CreateEmbed, CreateEmbed) {
         anime.background.as_ref().unwrap()
     );
 
-    let synopsis: String = if synopsis_unshortened.len() > 5500 {
-        String::from("...") + &synopsis_unshortened[0..5497]
+    let synopsis: String = if synopsis_unshortened.len() > EMBED_MAX_LENGTH {
+        String::from("...") + &synopsis_unshortened[0..(EMBED_MAX_LENGTH - 5)]
     } else {
         synopsis_unshortened
     };
@@ -167,6 +201,14 @@ fn anime_embed(anime: &Anime) -> (CreateEmbed, CreateEmbed) {
         .image(&anime.cover_art.large)
         .color(Color::from_rgb(4, 105, 207))
         .to_owned();
+
+    fn cleanly_join_vec(to_join: &Vec<impl ToString>) -> String {
+        to_join
+            .iter()
+            .map(|g| format!("`{}`", &g.to_string()))
+            .collect::<Vec<String>>()
+            .join(" | ")
+    }
 
     let page2 = CreateEmbed::default()
         .title(&title)
@@ -215,7 +257,17 @@ fn anime_embed(anime: &Anime) -> (CreateEmbed, CreateEmbed) {
             },
             true,
         )
-        .field("Studio(s)", "`TODO`", true)
+        .field(
+            "Studio(s)",
+            {
+                if let Some(genres) = &anime.studios {
+                    cleanly_join_vec(genres)
+                } else {
+                    String::from("NA")
+                }
+            },
+            true,
+        )
         .field(
             "Age Rating",
             format!(
@@ -252,11 +304,7 @@ fn anime_embed(anime: &Anime) -> (CreateEmbed, CreateEmbed) {
             "Genres",
             {
                 if let Some(genres) = &anime.genres {
-                    genres
-                        .iter()
-                        .map(|g| format!("`{}`", &g.name))
-                        .collect::<Vec<String>>()
-                        .join(" | ")
+                    cleanly_join_vec(genres)
                 } else {
                     String::from("NA")
                 }
