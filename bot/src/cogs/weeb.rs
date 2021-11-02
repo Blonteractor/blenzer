@@ -143,6 +143,132 @@ async fn anime(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     Ok(())
 }
 
+#[command]
+async fn manga(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let query = args.rest();
+
+    let mut search_results = Manga::search_basic(query, 10, true).await?;
+
+    let mut sent_choices_message = msg
+        .reply(
+            ctx,
+            search_results
+                .iter()
+                .enumerate()
+                .map(|manga| format!("{}. **{}**", manga.0 + 1, &manga.1.title))
+                .collect::<Vec<String>>()
+                .join("\n"),
+        )
+        .await?;
+
+    if let Some(choice_msg) = msg
+        .author
+        .await_reply(ctx)
+        .timeout(Duration::new(30, 0))
+        .await
+    {
+        if let Ok(mut choice_int) = choice_msg.content.parse::<usize>() {
+            if choice_int > 0 && choice_int <= search_results.len() {
+                //SAFETY: Already checked bounds manually kekw ratio
+                let mut manga = unsafe { search_results.get_unchecked_mut(choice_int - 1) };
+                manga.reload().await;
+                choice_msg.delete(ctx).await?;
+
+                let (mut manga_embed_1, mut manga_embed_2) = manga_embed(manga);
+
+                let mut cached = Vec::new();
+                cached.push(choice_int);
+
+                sent_choices_message
+                    .edit(ctx, |m| {
+                        m.content("")
+                            .set_embed(manga_embed_1.clone())
+                            .components(|c| {
+                                c.create_action_row(|a| {
+                                    a.create_button(|b| {
+                                        b.style(ButtonStyle::Primary)
+                                            .label("Previous")
+                                            .custom_id("manga_prev")
+                                    })
+                                    .create_button(|b| {
+                                        b.style(ButtonStyle::Secondary)
+                                            .label("Synopsis")
+                                            .custom_id("manga_synopsis")
+                                    })
+                                    .create_button(|b| {
+                                        b.style(ButtonStyle::Secondary)
+                                            .label("Details")
+                                            .custom_id("manga_details")
+                                    })
+                                    .create_button(|b| {
+                                        b.style(ButtonStyle::Primary)
+                                            .label("Next")
+                                            .custom_id("manga_next")
+                                    })
+                                })
+                            })
+                    })
+                    .await?;
+
+                let mut interaction_stream = sent_choices_message
+                    .await_component_interactions(ctx)
+                    .timeout(Duration::new(30, 0))
+                    .await;
+
+                while let Some(interaction) = interaction_stream.next().await {
+                    if interaction.data.custom_id == "manga_details" {
+                        sent_choices_message
+                            .edit(ctx, |m| m.set_embed(manga_embed_2.clone()))
+                            .await?;
+                    } else if interaction.data.custom_id == "manga_synopsis" {
+                        sent_choices_message
+                            .edit(ctx, |m| m.set_embed(manga_embed_1.clone()))
+                            .await?;
+                    } else {
+                        if interaction.data.custom_id == "manga_next" {
+                            choice_int += 1;
+                            if choice_int > search_results.len() {
+                                choice_int = 1;
+                            }
+                        } else if interaction.data.custom_id == "manga_prev" {
+                            choice_int -= 1;
+                            if choice_int > 1 {
+                                choice_int = search_results.len();
+                            }
+                        }
+
+                        //SAFETY: Already checked bounds manually kekw ratio
+                        manga = unsafe { search_results.get_unchecked_mut(choice_int - 1) };
+
+                        if !cached.contains(&choice_int) {
+                            manga.reload().await;
+                        }
+                        let manga_embeds = manga_embed(manga);
+                        manga_embed_1 = manga_embeds.0;
+                        manga_embed_2 = manga_embeds.1;
+                        sent_choices_message
+                            .edit(ctx, |m| m.set_embed(manga_embed_1.clone()))
+                            .await?;
+                    }
+
+                    interaction.defer(ctx).await?;
+                }
+            } else {
+                choice_msg
+                    .reply(ctx, "Invalid input, give an integer greater than 0 and less than the number of results pls.")
+                    .await?;
+            }
+        } else {
+            choice_msg
+                .reply(ctx, "Invalid input, give an integer greater than 0 and less than the number of results pls.")
+                .await?;
+        }
+    } else {
+        msg.channel_id.send_message(ctx, |c| c.content("I got no response sadly, try refining your search term if you didn't find your manga.")).await?;
+    }
+    Ok(())
+}
+
 fn manga_embed(manga: &Manga) -> (CreateEmbed, CreateEmbed) {
     let synopsis_unshortened = format!(
         "{} \n\n {}",
@@ -170,9 +296,100 @@ fn manga_embed(manga: &Manga) -> (CreateEmbed, CreateEmbed) {
         .color(Color::from_rgb(4, 105, 207))
         .to_owned();
 
-    let page2 = CreateEmbed::default();
+    let page2 = CreateEmbed::default()
+        .title(&title)
+        .url(&manga.url())
+        .image(
+            &manga
+                .pictures
+                .as_ref()
+                .unwrap()
+                .choose(&mut rand::thread_rng())
+                .unwrap()
+                .large,
+        )
+        .field("Score", format!("`{}`", manga.score.unwrap_or(0.0)), true)
+        .field("Rank", format!("`{}`", manga.rank.unwrap_or(0)), true)
+        .field(
+            "Popularity",
+            format!("`{}`", manga.popularity.unwrap_or(0)),
+            true,
+        )
+        .field(
+            "Number of Chapters",
+            format!("`{}`", manga.chapters.unwrap_or(0)),
+            true,
+        )
+        .field(
+            "Number of Volumes",
+            format!("`{}`", manga.volumes.unwrap_or(0)),
+            true,
+        )
+        .field(
+            "Author(s)",
+            {
+                if let Some(authors) = &manga.authors {
+                    cleanly_join_vec(authors)
+                } else {
+                    String::from("NA")
+                }
+            },
+            true,
+        )
+        .field(
+            "Age Rating",
+            format!(
+                "`{}`",
+                manga
+                    .rating
+                    .as_ref()
+                    .unwrap_or(&mal::prelude::enums::Rating::NA)
+            ),
+            true,
+        )
+        .field(
+            "Release",
+            format!("`{}`", manga.start.as_ref().unwrap_or(&String::from("NA"))),
+            true,
+        )
+        .field(
+            "End",
+            format!("`{}`", manga.end.as_ref().unwrap_or(&String::from("NA"))),
+            true,
+        )
+        .field(
+            "Status",
+            format!(
+                "`{}`",
+                manga
+                    .status
+                    .as_ref()
+                    .unwrap_or(&mal::prelude::enums::Status::NA)
+            ),
+            true,
+        )
+        .field(
+            "Genres",
+            {
+                if let Some(genres) = &manga.genres {
+                    cleanly_join_vec(genres)
+                } else {
+                    String::from("NA")
+                }
+            },
+            true,
+        )
+        .to_owned();
 
     (page1, page2)
+}
+
+fn cleanly_join_vec(to_join: &Vec<impl ToString>) -> String {
+    to_join
+        .iter()
+        .map(|g| format!("`{}`", &g.to_string()))
+        .collect::<Vec<String>>()
+        .join(" | ")
 }
 
 fn anime_embed(anime: &Anime) -> (CreateEmbed, CreateEmbed) {
@@ -201,14 +418,6 @@ fn anime_embed(anime: &Anime) -> (CreateEmbed, CreateEmbed) {
         .image(&anime.cover_art.large)
         .color(Color::from_rgb(4, 105, 207))
         .to_owned();
-
-    fn cleanly_join_vec(to_join: &Vec<impl ToString>) -> String {
-        to_join
-            .iter()
-            .map(|g| format!("`{}`", &g.to_string()))
-            .collect::<Vec<String>>()
-            .join(" | ")
-    }
 
     let page2 = CreateEmbed::default()
         .title(&title)
@@ -316,5 +525,5 @@ fn anime_embed(anime: &Anime) -> (CreateEmbed, CreateEmbed) {
     (page1, page2)
 }
 #[group]
-#[commands(anime)]
+#[commands(anime, manga)]
 pub struct Weeb;

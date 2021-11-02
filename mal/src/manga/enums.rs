@@ -1,6 +1,7 @@
 use serde::Deserialize;
+use std::fmt::Display;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, enum_display_derive::Display)]
 pub enum AuthorRole {
     Art,
     Story,
