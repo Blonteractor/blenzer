@@ -3,6 +3,7 @@ pub mod structs;
 
 use super::prelude::*;
 use super::MALClient;
+use async_trait::async_trait;
 use serde::Deserialize;
 use std::ops::Deref;
 use structs::*;
@@ -87,6 +88,13 @@ impl Manga {
     }
 
     pub async fn reload(&mut self) {
+        *self = Self::from_id(self.id).await.unwrap();
+    }
+}
+
+#[async_trait]
+impl Reloadable for Manga {
+    async fn reload(&mut self) {
         *self = Self::from_id(self.id).await.unwrap();
     }
 }

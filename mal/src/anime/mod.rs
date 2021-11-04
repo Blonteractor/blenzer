@@ -4,7 +4,9 @@ pub mod structs;
 use super::prelude::enums::*;
 use super::prelude::*;
 
+use super::prelude::Reloadable;
 use super::MALClient;
+use async_trait::async_trait;
 use enums::*;
 use serde::Deserialize;
 use std::ops::Deref;
@@ -87,6 +89,12 @@ impl Anime {
     }
 }
 
+#[async_trait]
+impl Reloadable for Anime {
+    async fn reload(&mut self) {
+        *self = Self::from_id(self.id).await.unwrap();
+    }
+}
 impl Deref for Anime {
     type Target = BasicMalObject;
 

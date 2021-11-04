@@ -109,6 +109,7 @@ pub enum Status {
     CurrentlyPublishing,
     Finished,
     OnHiatus,
+    NotYetAired,
     NA,
 }
 

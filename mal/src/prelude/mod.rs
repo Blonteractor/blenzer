@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use structs::*;
 
 type JSONDateTime = DateTime<Utc>;
+use async_trait::async_trait;
 
 #[derive(Deserialize)]
 pub struct BasicMalObject {
@@ -53,4 +54,9 @@ impl<T> std::ops::Deref for SearchResponse<T> {
     fn deref(&self) -> &Self::Target {
         &self.data
     }
+}
+
+#[async_trait]
+pub trait Reloadable {
+    async fn reload(&mut self);
 }
