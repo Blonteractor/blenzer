@@ -22,6 +22,7 @@ use serenity::model::{
 };
 
 use cogs::meta::*;
+use cogs::music::*;
 use cogs::utility::*;
 use cogs::weeb::*;
 
@@ -89,6 +90,7 @@ async fn main() {
         .help(&MY_HELP)
         .group(&META_GROUP)
         .group(&UTILITY_GROUP)
+        .group(&MUSIC_GROUP)
         .group(&WEEB_GROUP);
 
     //# Build the client using the framework and the token
