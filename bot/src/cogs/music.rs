@@ -8,9 +8,6 @@ use serenity::prelude::*;
 #[command]
 async fn play(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let query = args.rest();
-
-    msg.reply(ctx, format!("Query: {}", query)).await?;
-
     Ok(())
 }
 

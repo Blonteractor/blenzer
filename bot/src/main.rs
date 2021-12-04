@@ -19,9 +19,15 @@ use serenity::framework::standard::{
     macros::{help, hook},
     Args, CommandGroup, CommandResult, DispatchError, HelpOptions, StandardFramework,
 };
+
 use serenity::model::{
     channel::Message,
     prelude::{Ready, UserId},
+};
+
+use songbird::{
+    input::{self, restartable::Restartable},
+    Event, EventContext, EventHandler as VoiceEventHandler, SerenityInit, TrackEvent,
 };
 
 use cogs::meta::*;
@@ -102,11 +108,16 @@ async fn main() {
         .event_handler(Handler)
         .framework(framework)
         .application_id(application_id)
+        //.register_songbird()
         .await
         .expect("Error creating client.");
 
     // Start listening for events by starting a single shard
-    if let Err(e) = client.start().await {
-        error!("An error occured while running the client: {:?}", e);
+    if let Err(e) = client
+        .start()
+        .await
+        .map_err(|why| error!("Client ended: {:?}", why))
+    {
+        error!("Error in starting client: {:?}", e);
     }
 }

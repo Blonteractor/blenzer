@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+songbird = {version="0.2.0", features=["serenity-rustls"]}
 dotenv = "0.15"
 rand = "0.8.4"
 num-traits = "0.2"
@@ -18,4 +19,4 @@ mal = {path="../mal"}
 [dependencies.serenity]
 git = "https://github.com/serenity-rs/serenity"
 branch = "current"
-features=["collector", "unstable_discord_api", "builder", "model"]
+features=["collector", "unstable_discord_api", "builder", "model", "voice", "rustls_backend", "client"]
