@@ -8,6 +8,9 @@ use std::env;
 
 use dotenv::dotenv;
 
+use env_logger;
+use log::{error, info, warn};
+
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
 use serenity::framework::standard::CommandError;
@@ -33,7 +36,7 @@ struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, _ctx: Context, data_about_bot: Ready) {
-        println!("Client connected as {}", data_about_bot.user.name);
+        info!("Client connected as {}", data_about_bot.user.name);
     }
 }
 
@@ -52,7 +55,7 @@ async fn my_help(
 
 #[hook]
 async fn unrecognised_command_hook(_: &Context, msg: &Message, unrecognised_command_name: &str) {
-    println!(
+    warn!(
         "User {:?} tried to execute the command {:?} which doesnt exist",
         msg.author.name, unrecognised_command_name
     );
@@ -60,20 +63,21 @@ async fn unrecognised_command_hook(_: &Context, msg: &Message, unrecognised_comm
 
 #[hook]
 async fn command_error_hook(_: &Context, _: &Message, error: DispatchError) {
-    eprintln!("Error occured in command: {:?}", error)
+    error!("Error occured in command: {:?}", error)
 }
 
 #[hook]
 async fn after_hook(_: &Context, _: &Message, cmd_name: &str, error: Result<(), CommandError>) {
     //  Print out an error if it happened
     if let Err(why) = error {
-        println!("Error in {}: {:?}", cmd_name, why);
+        error!("Error in {}: {:?}", cmd_name, why);
     }
 }
 
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+    env_logger::init();
 
     let token = env::var("DISCORD_TOKEN").unwrap();
     let application_id = env::var("DISCORD_APPLICATION_ID")
@@ -103,6 +107,6 @@ async fn main() {
 
     // Start listening for events by starting a single shard
     if let Err(e) = client.start().await {
-        println!("An error occured while running the client: {:?}", e);
+        error!("An error occured while running the client: {:?}", e);
     }
 }
