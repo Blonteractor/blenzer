@@ -144,7 +144,7 @@ dependencies = [
  "mal",
  "num-traits 0.2.14",
  "rand 0.8.4",
- "serenity 0.10.9 (git+https://github.com/serenity-rs/serenity?branch=current)",
+ "serenity",
  "songbird",
  "tokio",
 ]
@@ -1470,30 +1470,6 @@ dependencies = [
 [[package]]
 name = "serenity"
 version = "0.10.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6275d443266aedf2be507a245ddc23db0c07b1b99774e16f3c879e96a78b067a"
-dependencies = [
- "async-trait",
- "async-tungstenite 0.11.0",
- "base64 0.13.0",
- "bitflags",
- "bytes 1.1.0",
- "chrono",
- "flate2",
- "futures",
- "percent-encoding",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "typemap_rev",
- "url",
-]
-
-[[package]]
-name = "serenity"
-version = "0.10.9"
 source = "git+https://github.com/serenity-rs/serenity?branch=current#fe946df80ed725784ed5b6d5ee233fe82b896861"
 dependencies = [
  "async-trait",
@@ -1593,7 +1569,7 @@ dependencies = [
  "rand 0.8.4",
  "serde",
  "serde_json",
- "serenity 0.10.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serenity",
  "serenity-voice-model",
  "spin_sleep",
  "streamcatcher",

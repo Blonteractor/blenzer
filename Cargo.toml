@@ -4,3 +4,6 @@ members = [
     "bot",
     "mal"
 ]
+
+[patch.crates-io]
+serenity = { git = "https://github.com/serenity-rs/serenity", branch = "current"}

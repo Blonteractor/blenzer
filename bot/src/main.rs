@@ -27,8 +27,10 @@ use serenity::model::{
 
 use songbird::{
     input::{self, restartable::Restartable},
-    Event, EventContext, EventHandler as VoiceEventHandler, SerenityInit, TrackEvent,
+    Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent,
 };
+
+use songbird::SerenityInit;
 
 use cogs::meta::*;
 use cogs::music::*;
@@ -108,7 +110,7 @@ async fn main() {
         .event_handler(Handler)
         .framework(framework)
         .application_id(application_id)
-        //.register_songbird()
+        .register_songbird()
         .await
         .expect("Error creating client.");
 
