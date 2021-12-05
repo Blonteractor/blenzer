@@ -1,16 +1,22 @@
 use super::super::util::parsers;
-use log::{debug, error};
-use serenity::framework::standard::{
-    macros::{command, group},
-    Args, CommandResult,
-};
+use log::{debug, error, warn};
 use serenity::model::prelude::*;
 use serenity::prelude::*;
+use serenity::utils::Color;
+use serenity::{
+    builder::CreateEmbed,
+    framework::standard::{
+        macros::{command, group},
+        Args, CommandResult,
+    },
+};
 use songbird::{
     input::{Input, Restartable},
     Call,
 };
 use std::sync::Arc;
+use youtube_dl::YoutubeDl;
+use youtube_dl::YoutubeDlOutput;
 
 #[command]
 async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -29,10 +35,24 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         voice_manager = voice_manager.clone();
 
         if let Some(handler_lock) = voice_manager.get(guild.id) {
-            let _ = match play_song(url, handler_lock).await {
-                Ok(()) => msg.reply(ctx, "Playing song.").await?,
-                Err(_) => msg.reply(ctx, "Error playing your song.").await?,
-            };
+            match play_song(url, handler_lock).await {
+                Ok(()) => {
+                    let embed = song_embed(url.to_string())?
+                        .timestamp(&msg.timestamp)
+                        .footer(|f| {
+                            f.text(format!("Requested by {}", &msg.author.name))
+                                .icon_url(&msg.author.avatar_url().as_ref().unwrap())
+                        })
+                        .to_owned();
+
+                    msg.channel_id
+                        .send_message(ctx, |m| m.set_embed(embed))
+                        .await?;
+                }
+                Err(_) => {
+                    msg.reply(ctx, "Error playing your song.").await?;
+                }
+            }
         } else {
             // User not in vc, join
             join(ctx, msg, args).await?;
@@ -41,8 +61,22 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             let handler_lock = voice_manager.get(guild.id).unwrap();
 
             let _ = match play_song(url, handler_lock).await {
-                Ok(()) => msg.reply(ctx, "Playing song.").await?,
-                Err(_) => msg.reply(ctx, "Error playing your song.").await?,
+                Ok(()) => {
+                    let embed = song_embed(url.to_string())?
+                        .timestamp(&msg.timestamp)
+                        .footer(|f| {
+                            f.text(format!("Requested by {}", &msg.author.name))
+                                .icon_url(&msg.author.avatar_url().as_ref().unwrap())
+                        })
+                        .to_owned();
+
+                    msg.channel_id
+                        .send_message(ctx, |m| m.set_embed(embed))
+                        .await?;
+                }
+                Err(_) => {
+                    msg.reply(ctx, "Error playing your song.").await?;
+                }
             };
         }
     } else {
@@ -53,6 +87,30 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     Ok(())
 }
 
+fn song_embed(url: impl ToString) -> Result<CreateEmbed, youtube_dl::Error> {
+    let video = if let YoutubeDlOutput::SingleVideo(video) = YoutubeDl::new(&url.to_string())
+        .extract_audio(false)
+        .run()?
+    {
+        video
+    } else {
+        warn!("Song embed requested for playlist url");
+        unreachable!();
+    };
+
+    Ok(CreateEmbed::default()
+        .image(video.thumbnail.unwrap_or_default())
+        .title("Song added to queue")
+        .description(format!("**#1** \n *{}*", video.title))
+        .url(&url.to_string())
+        .color(Color::from_rgb(4, 105, 207))
+        .to_owned())
+}
+
+fn search_song(query: impl ToString) -> Result<String, youtube_dl::Error> {
+    let ytldl = YoutubeDl::new(query.to_string());
+    Ok(String::new())
+}
 async fn play_song(
     url: &'static str,
     handler_lock: Arc<Mutex<Call>>,

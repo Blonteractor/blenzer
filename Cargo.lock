@@ -147,6 +147,7 @@ dependencies = [
  "serenity",
  "songbird",
  "tokio",
+ "youtube_dl",
 ]
 
 [[package]]
@@ -2000,6 +2001,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5fecdca9a5291cc2b8dcf7dc02453fee791a280f3743cb0905f8822ae463b3fe"
 
 [[package]]
+name = "wait-timeout"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f200f5b12eb75f8c1ed65abd4b2db8a6e1b138a20de009dacee265a2498f3f6"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "want"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2187,6 +2197,18 @@ dependencies = [
  "salsa20",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "youtube_dl"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9a6d677f72f89a395739614e091454e2f8c9c418705f906452d5a00dfaf8e63"
+dependencies = [
+ "log",
+ "serde",
+ "serde_json",
+ "wait-timeout",
 ]
 
 [[package]]
