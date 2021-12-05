@@ -9,7 +9,7 @@ use std::env;
 use dotenv::dotenv;
 
 use env_logger;
-use log::{error, info, warn};
+use log::{debug, error, info};
 
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
@@ -23,11 +23,6 @@ use serenity::framework::standard::{
 use serenity::model::{
     channel::Message,
     prelude::{Ready, UserId},
-};
-
-use songbird::{
-    input::{self, restartable::Restartable},
-    Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent,
 };
 
 use songbird::SerenityInit;
@@ -63,7 +58,7 @@ async fn my_help(
 
 #[hook]
 async fn unrecognised_command_hook(_: &Context, msg: &Message, unrecognised_command_name: &str) {
-    warn!(
+    debug!(
         "User {:?} tried to execute the command {:?} which doesnt exist",
         msg.author.name, unrecognised_command_name
     );

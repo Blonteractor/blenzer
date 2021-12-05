@@ -36,6 +36,35 @@ pub async fn member<'a>(
     results
 }
 
+pub fn url<'a>(args: &mut Args) -> Vec<String> {
+    let mut results: Vec<String> = Vec::new();
+
+    loop {
+        match args.single::<String>() {
+            Ok(url) => {
+                if !url.starts_with("http") {
+                    continue;
+                } else {
+                    results.push(url);
+                }
+            }
+            Err(e) => {
+                if let ArgError::Parse(_) = e {
+                    args.advance();
+                }
+                if args.is_empty() {
+                    break;
+                } else {
+                    continue;
+                }
+            }
+        }
+    }
+
+    args.restore();
+    results
+}
+
 pub async fn await_choice_int<'a, S>(
     ctx: &Context,
     msg: &Message,
