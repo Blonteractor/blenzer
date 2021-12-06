@@ -1,17 +1,8 @@
 use log::{error, warn};
-use serenity::builder::CreateEmbed;
-use serenity::prelude::*;
-use serenity::utils::Color;
-use songbird::{
-    input::{Input, Restartable},
-    tracks::TrackHandle,
-    Call,
-};
+use serenity::{builder::CreateEmbed, prelude::*, utils::Color};
+use songbird::{input::Restartable, tracks::TrackHandle, Call};
 use std::sync::Arc;
-use youtube_dl::SearchOptions;
-use youtube_dl::SingleVideo;
-use youtube_dl::YoutubeDl;
-use youtube_dl::YoutubeDlOutput;
+use youtube_dl::{SearchOptions, SingleVideo, YoutubeDl, YoutubeDlOutput};
 
 pub fn get_song(url: impl ToString) -> Result<SingleVideo, youtube_dl::Error> {
     let video = if let YoutubeDlOutput::SingleVideo(video) = YoutubeDl::new(&url.to_string())
@@ -54,7 +45,7 @@ pub fn song_embed(video: SingleVideo) -> Result<CreateEmbed, youtube_dl::Error> 
         .to_owned())
 }
 
-pub async fn play_song(
+pub async fn play_song_now(
     url: String,
     handler_lock: Arc<Mutex<Call>>,
 ) -> Result<TrackHandle, songbird::input::error::Error> {
@@ -68,5 +59,24 @@ pub async fn play_song(
         }
     };
 
-    Ok(handler.play_source(Input::from(source)))
+    Ok(handler.play_source(source.into()))
+}
+
+pub async fn add_song_to_queue(
+    url: String,
+    handler_lock: Arc<Mutex<Call>>,
+) -> Result<(), songbird::input::error::Error> {
+    let mut handler = handler_lock.lock().await;
+
+    let source = match Restartable::ytdl(url, true).await {
+        Ok(source) => source,
+        Err(why) => {
+            error!("Couldn't start source: {:?}", why);
+            return Err(why);
+        }
+    };
+
+    handler.enqueue_source(source.into());
+
+    Ok(())
 }

@@ -1,12 +1,14 @@
 pub mod utils;
 
-use log::{error, trace};
-use serenity::framework::standard::{
-    macros::{command, group},
-    Args, CommandResult,
+use log::{debug, error, trace};
+use serenity::{
+    framework::standard::{
+        macros::{command, group},
+        Args, CommandResult,
+    },
+    model::prelude::*,
+    prelude::*,
 };
-use serenity::model::prelude::*;
-use serenity::prelude::*;
 
 use utils::*;
 
@@ -42,7 +44,7 @@ async fn play(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             handler_lock = voice_manager.get(guild.id);
         }
 
-        match play_song(url, handler_lock.unwrap()).await {
+        match add_song_to_queue(url, handler_lock.unwrap()).await {
             Ok(_) => {
                 let embed = song_embed(song)?
                     .timestamp(&msg.timestamp)
@@ -65,6 +67,64 @@ async fn play(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         return Ok(());
     }
 
+    Ok(())
+}
+
+#[command]
+#[only_in(guilds)]
+async fn pause(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
+    let guild = msg.guild(&ctx.cache).await.unwrap();
+
+    if let Some(mut voice_manager) = songbird::get(ctx).await {
+        voice_manager = voice_manager.clone();
+
+        let handler_lock = if let Some(hl) = voice_manager.get(guild.id) {
+            hl
+        } else {
+            // User not in vc
+            msg.reply(ctx, "I aint even in a vc").await?;
+
+            return Ok(());
+        };
+
+        let handler = handler_lock.lock().await;
+
+        handler.queue().pause()?;
+
+        msg.reply(ctx, "Music paused").await?;
+    } else {
+        error!("Couldn't retreive the songbird voice manager");
+        return Ok(());
+    }
+    Ok(())
+}
+
+#[command]
+#[only_in(guilds)]
+async fn resume(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
+    let guild = msg.guild(&ctx.cache).await.unwrap();
+
+    if let Some(mut voice_manager) = songbird::get(ctx).await {
+        voice_manager = voice_manager.clone();
+
+        let handler_lock = if let Some(hl) = voice_manager.get(guild.id) {
+            hl
+        } else {
+            // User not in vc
+            msg.reply(ctx, "I aint even in a vc").await?;
+
+            return Ok(());
+        };
+
+        let handler = handler_lock.lock().await;
+
+        handler.queue().resume()?;
+
+        msg.reply(ctx, "Music resumed").await?;
+    } else {
+        error!("Couldn't retreive the songbird voice manager");
+        return Ok(());
+    }
     Ok(())
 }
 
@@ -141,5 +201,5 @@ async fn leave(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
 }
 
 #[group]
-#[commands(play, join, leave)]
+#[commands(play, join, leave, pause, resume)]
 pub struct Music;
