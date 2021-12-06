@@ -4,6 +4,7 @@ use serenity::prelude::*;
 use serenity::utils::Color;
 use songbird::{
     input::{Input, Restartable},
+    tracks::TrackHandle,
     Call,
 };
 use std::sync::Arc;
@@ -56,7 +57,7 @@ pub fn song_embed(video: SingleVideo) -> Result<CreateEmbed, youtube_dl::Error> 
 pub async fn play_song(
     url: String,
     handler_lock: Arc<Mutex<Call>>,
-) -> Result<(), songbird::input::error::Error> {
+) -> Result<TrackHandle, songbird::input::error::Error> {
     let mut handler = handler_lock.lock().await;
 
     let source = match Restartable::ytdl(url, true).await {
@@ -67,7 +68,5 @@ pub async fn play_song(
         }
     };
 
-    handler.play_source(Input::from(source));
-
-    Ok(())
+    Ok(handler.play_source(Input::from(source)))
 }

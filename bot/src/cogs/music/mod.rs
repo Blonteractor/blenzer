@@ -32,50 +32,33 @@ async fn play(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     if let Some(mut voice_manager) = songbird::get(ctx).await {
         voice_manager = voice_manager.clone();
 
-        if let Some(handler_lock) = voice_manager.get(guild.id) {
-            match play_song(url, handler_lock).await {
-                Ok(()) => {
-                    let embed = song_embed(song)?
-                        .timestamp(&msg.timestamp)
-                        .footer(|f| {
-                            f.text(format!("Requested by {}", &msg.author.name))
-                                .icon_url(&msg.author.avatar_url().as_ref().unwrap())
-                        })
-                        .to_owned();
+        let mut handler_lock = voice_manager.get(guild.id);
 
-                    msg.channel_id
-                        .send_message(ctx, |m| m.set_embed(embed))
-                        .await?;
-                }
-                Err(_) => {
-                    msg.reply(ctx, "Error playing your song.").await?;
-                }
-            }
-        } else {
+        if handler_lock.is_none() {
             // User not in vc, join
             join(ctx, msg, args).await?;
 
-            // Try and get lock again after joining vc
-            let handler_lock = voice_manager.get(guild.id).unwrap();
+            // Try and get handler lock again
+            handler_lock = voice_manager.get(guild.id);
+        }
 
-            let _ = match play_song(url, handler_lock).await {
-                Ok(()) => {
-                    let embed = song_embed(song)?
-                        .timestamp(&msg.timestamp)
-                        .footer(|f| {
-                            f.text(format!("Requested by {}", &msg.author.name))
-                                .icon_url(&msg.author.avatar_url().as_ref().unwrap())
-                        })
-                        .to_owned();
+        match play_song(url, handler_lock.unwrap()).await {
+            Ok(_) => {
+                let embed = song_embed(song)?
+                    .timestamp(&msg.timestamp)
+                    .footer(|f| {
+                        f.text(format!("Requested by {}", &msg.author.name))
+                            .icon_url(&msg.author.avatar_url().as_ref().unwrap())
+                    })
+                    .to_owned();
 
-                    msg.channel_id
-                        .send_message(ctx, |m| m.set_embed(embed))
-                        .await?;
-                }
-                Err(_) => {
-                    msg.reply(ctx, "Error playing your song.").await?;
-                }
-            };
+                msg.channel_id
+                    .send_message(ctx, |m| m.set_embed(embed))
+                    .await?;
+            }
+            Err(_) => {
+                msg.reply(ctx, "Error playing your song.").await?;
+            }
         }
     } else {
         error!("Couldn't retreive the songbird voice manager");
