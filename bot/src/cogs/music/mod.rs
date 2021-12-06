@@ -1,6 +1,6 @@
 pub mod utils;
 
-use log::{debug, error, trace};
+use log::{error, trace};
 use serenity::{
     framework::standard::{
         macros::{command, group},
@@ -9,6 +9,7 @@ use serenity::{
     model::prelude::*,
     prelude::*,
 };
+use std::time::Duration;
 
 use utils::*;
 
@@ -16,18 +17,7 @@ use utils::*;
 async fn play(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let query = args.rest();
 
-    let search_result = search_songs(query, 1)?.into_iter().next();
-
-    let song = match search_result {
-        Some(vid) => vid,
-        None => {
-            msg.reply(ctx, "No results were found with the query")
-                .await?;
-            return Ok(());
-        }
-    };
-
-    let url = song.webpage_url.as_ref().unwrap().clone();
+    let song = search_song(query).await?;
 
     let guild = msg.guild(&ctx.cache).await.unwrap();
 
@@ -44,24 +34,25 @@ async fn play(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             handler_lock = voice_manager.get(guild.id);
         }
 
-        match add_song_to_queue(url, handler_lock.unwrap()).await {
-            Ok(_) => {
-                let embed = song_embed(song)?
-                    .timestamp(&msg.timestamp)
-                    .footer(|f| {
-                        f.text(format!("Requested by {}", &msg.author.name))
-                            .icon_url(&msg.author.avatar_url().as_ref().unwrap())
-                    })
-                    .to_owned();
+        let handler_lock = handler_lock.unwrap();
+        let mut handler = handler_lock.lock().await;
 
-                msg.channel_id
-                    .send_message(ctx, |m| m.set_embed(embed))
-                    .await?;
-            }
-            Err(_) => {
-                msg.reply(ctx, "Error playing your song.").await?;
-            }
-        }
+        handler.enqueue_source(song);
+
+        let queue = handler.queue().current_queue();
+        let latest_track = queue.last().unwrap();
+
+        let embed = song_embed(&latest_track, queue.len())?
+            .timestamp(&msg.timestamp)
+            .footer(|f| {
+                f.text(format!("Requested by {}", &msg.author.name))
+                    .icon_url(&msg.author.avatar_url().as_ref().unwrap())
+            })
+            .to_owned();
+
+        msg.channel_id
+            .send_message(ctx, |m| m.set_embed(embed))
+            .await?;
     } else {
         error!("Couldn't retreive the songbird voice manager");
         return Ok(());
@@ -101,6 +92,166 @@ async fn pause(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 
 #[command]
 #[only_in(guilds)]
+async fn stop(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
+    let guild = msg.guild(&ctx.cache).await.unwrap();
+
+    if let Some(mut voice_manager) = songbird::get(ctx).await {
+        voice_manager = voice_manager.clone();
+
+        let handler_lock = if let Some(hl) = voice_manager.get(guild.id) {
+            hl
+        } else {
+            // User not in vc
+            msg.reply(ctx, "I aint even in a vc").await?;
+
+            return Ok(());
+        };
+
+        let mut handler = handler_lock.lock().await;
+
+        handler.stop();
+
+        //Clears the queue
+        handler.queue().modify_queue(|queue| {
+            queue.clear();
+        });
+
+        msg.reply(ctx, "Music paused").await?;
+    } else {
+        error!("Couldn't retreive the songbird voice manager");
+        return Ok(());
+    }
+    Ok(())
+}
+
+#[command]
+#[only_in(guilds)]
+#[aliases("loop")]
+async fn loopcurrent(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
+    let guild = msg.guild(&ctx.cache).await.unwrap();
+
+    if let Some(mut voice_manager) = songbird::get(ctx).await {
+        voice_manager = voice_manager.clone();
+
+        let handler_lock = if let Some(hl) = voice_manager.get(guild.id) {
+            hl
+        } else {
+            // User not in vc
+            msg.reply(ctx, "I aint even in a vc").await?;
+
+            return Ok(());
+        };
+
+        let handler = handler_lock.lock().await;
+
+        match handler.queue().current() {
+            Some(track) => {
+                track.enable_loop()?;
+            }
+            None => {
+                msg.reply(ctx, "Nothing's playing").await?;
+            }
+        }
+
+        msg.reply(ctx, "Loop on").await?;
+    } else {
+        error!("Couldn't retreive the songbird voice manager");
+        return Ok(());
+    }
+    Ok(())
+}
+
+#[command]
+#[only_in(guilds)]
+async fn seek(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let time = match args.single::<u64>() {
+        Ok(time) => time,
+        Err(_) => {
+            msg.reply(ctx, "Invalid time format, enter time in seconds.")
+                .await?;
+            return Ok(());
+        }
+    };
+
+    let guild = msg.guild(&ctx.cache).await.unwrap();
+
+    if let Some(mut voice_manager) = songbird::get(ctx).await {
+        voice_manager = voice_manager.clone();
+
+        let handler_lock = if let Some(hl) = voice_manager.get(guild.id) {
+            hl
+        } else {
+            // User not in vc
+            msg.reply(ctx, "I aint even in a vc").await?;
+
+            return Ok(());
+        };
+
+        let handler = handler_lock.lock().await;
+
+        match handler.queue().current() {
+            Some(track) => {
+                if track.metadata().duration.unwrap().as_secs() >= time {
+                    track.seek_time(Duration::from_secs(time))?;
+                } else {
+                    msg.reply(
+                        ctx,
+                        "Your seek time is more than the duration of this track.",
+                    )
+                    .await?;
+                }
+            }
+            None => {
+                msg.reply(ctx, "Nothing's playing").await?;
+            }
+        }
+
+        msg.reply(ctx, format!("Seeked to {}s", time)).await?;
+    } else {
+        error!("Couldn't retreive the songbird voice manager");
+        return Ok(());
+    }
+    Ok(())
+}
+
+#[command]
+#[only_in(guilds)]
+async fn restart(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
+    let guild = msg.guild(&ctx.cache).await.unwrap();
+
+    if let Some(mut voice_manager) = songbird::get(ctx).await {
+        voice_manager = voice_manager.clone();
+
+        let handler_lock = if let Some(hl) = voice_manager.get(guild.id) {
+            hl
+        } else {
+            // User not in vc
+            msg.reply(ctx, "I aint even in a vc").await?;
+
+            return Ok(());
+        };
+
+        let handler = handler_lock.lock().await;
+
+        match handler.queue().current() {
+            Some(track) => {
+                track.seek_time(Duration::from_secs(0))?;
+            }
+            None => {
+                msg.reply(ctx, "Nothing's playing").await?;
+            }
+        }
+
+        msg.reply(ctx, "Music restarted").await?;
+    } else {
+        error!("Couldn't retreive the songbird voice manager");
+        return Ok(());
+    }
+    Ok(())
+}
+
+#[command]
+#[only_in(guilds)]
 async fn resume(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     let guild = msg.guild(&ctx.cache).await.unwrap();
 
@@ -121,6 +272,37 @@ async fn resume(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
         handler.queue().resume()?;
 
         msg.reply(ctx, "Music resumed").await?;
+    } else {
+        error!("Couldn't retreive the songbird voice manager");
+        return Ok(());
+    }
+    Ok(())
+}
+
+#[command]
+#[only_in(guilds)]
+async fn skip(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
+    let guild = msg.guild(&ctx.cache).await.unwrap();
+
+    if let Some(mut voice_manager) = songbird::get(ctx).await {
+        voice_manager = voice_manager.clone();
+
+        let handler_lock = if let Some(hl) = voice_manager.get(guild.id) {
+            hl
+        } else {
+            // User not in vc
+            msg.reply(ctx, "I aint even in a vc").await?;
+
+            return Ok(());
+        };
+
+        let handler = handler_lock.lock().await;
+
+        if let Err(_) = handler.queue().skip() {
+            msg.reply(ctx, "Already at last song in queue").await?;
+        } else {
+            msg.reply(ctx, "Track skipped").await?;
+        }
     } else {
         error!("Couldn't retreive the songbird voice manager");
         return Ok(());
@@ -201,5 +383,5 @@ async fn leave(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
 }
 
 #[group]
-#[commands(play, join, leave, pause, resume)]
+#[commands(play, join, leave, pause, resume, restart, seek, loopcurrent, stop)]
 pub struct Music;

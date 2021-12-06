@@ -1,21 +1,23 @@
-use log::{error, warn};
+use log::error;
 use serenity::{builder::CreateEmbed, prelude::*, utils::Color};
-use songbird::{input::Restartable, tracks::TrackHandle, Call};
+use songbird::{
+    input::{self, Input, Restartable},
+    tracks::TrackHandle,
+    Call,
+};
 use std::sync::Arc;
 use youtube_dl::{SearchOptions, SingleVideo, YoutubeDl, YoutubeDlOutput};
 
-pub fn get_song(url: impl ToString) -> Result<SingleVideo, youtube_dl::Error> {
-    let video = if let YoutubeDlOutput::SingleVideo(video) = YoutubeDl::new(&url.to_string())
-        .extract_audio(false)
-        .run()?
-    {
-        *video
-    } else {
-        warn!("Song embed requested for playlist url");
-        unreachable!();
+pub async fn get_song(url: impl ToString) -> Result<Input, input::error::Error> {
+    let source = match Restartable::ytdl(url.to_string(), true).await {
+        Ok(source) => source,
+        Err(why) => {
+            error!("Couldn't start source: {:?}", why);
+            return Err(why);
+        }
     };
 
-    Ok(video)
+    Ok(source.into())
 }
 
 pub fn search_songs(
@@ -34,13 +36,32 @@ pub fn search_songs(
         unreachable!()
     }
 }
+pub async fn search_song(query: impl ToString) -> Result<Input, input::error::Error> {
+    let source = match Restartable::ytdl_search(query.to_string(), true).await {
+        Ok(source) => source,
+        Err(why) => {
+            error!("Couldn't start source: {:?}", why);
+            return Err(why);
+        }
+    };
 
-pub fn song_embed(video: SingleVideo) -> Result<CreateEmbed, youtube_dl::Error> {
+    Ok(source.into())
+}
+
+pub fn song_embed(
+    track_handle: &TrackHandle,
+    position: usize,
+) -> Result<CreateEmbed, youtube_dl::Error> {
+    let metadata = track_handle.metadata();
     Ok(CreateEmbed::default()
-        .image(video.thumbnail.unwrap_or_default())
+        .image(metadata.thumbnail.as_ref().unwrap_or(&String::default()))
         .title("Song added to queue")
-        .description(format!("**#1** \n *{}*", video.title))
-        .url(video.webpage_url.unwrap_or_default())
+        .description(format!(
+            "**#{}** \n *{}*",
+            position,
+            metadata.title.as_ref().unwrap_or(&String::default())
+        ))
+        .url(metadata.source_url.as_ref().unwrap_or(&String::default()))
         .color(Color::from_rgb(4, 105, 207))
         .to_owned())
 }
@@ -64,7 +85,7 @@ pub async fn play_song_now(
 
 pub async fn add_song_to_queue(
     url: String,
-    handler_lock: Arc<Mutex<Call>>,
+    handler_lock: &Arc<Mutex<Call>>,
 ) -> Result<(), songbird::input::error::Error> {
     let mut handler = handler_lock.lock().await;
 
