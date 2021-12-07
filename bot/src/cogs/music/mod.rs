@@ -42,6 +42,11 @@ async fn play(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         let queue = handler.queue().current_queue();
         let latest_track = queue.last().unwrap();
 
+        {
+            let mut writer = latest_track.typemap().write().await;
+            writer.insert::<SongRequestedBy>(msg.author.name.clone());
+        }
+
         let embed = song_embed(&latest_track, queue.len())?
             .timestamp(&msg.timestamp)
             .footer(|f| {
@@ -524,9 +529,15 @@ async fn queue(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                 .enumerate()
                 .map(|(position, track)| {
                     format!(
-                        "**{}.** {}",
+                        "**{}.** {} | *Requested By: {}*",
                         position + 1,
-                        track.metadata().title.as_ref().unwrap_or(&String::new())
+                        track.metadata().title.as_ref().unwrap_or(&String::new()),
+                        {
+                            match track.typemap().try_read() {
+                                Ok(reader) => reader.get::<SongRequestedBy>().unwrap().to_owned(),
+                                Err(_) => String::from("Unknown"),
+                            }
+                        }
                     )
                 })
                 .collect::<Vec<String>>()

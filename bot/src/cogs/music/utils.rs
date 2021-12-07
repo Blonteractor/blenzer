@@ -101,3 +101,9 @@ pub async fn add_song_to_queue(
 
     Ok(())
 }
+
+pub struct SongRequestedBy;
+
+impl TypeMapKey for SongRequestedBy {
+    type Value = String;
+}
