@@ -520,29 +520,36 @@ async fn queue(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 
         let handler = handler_lock.lock().await;
 
-        msg.reply(
-            ctx,
-            handler
-                .queue()
-                .current_queue()
-                .iter()
-                .enumerate()
-                .map(|(position, track)| {
-                    format!(
-                        "**{}.** {} | *Requested By: {}*",
-                        position + 1,
-                        track.metadata().title.as_ref().unwrap_or(&String::new()),
-                        {
-                            match track.typemap().try_read() {
-                                Ok(reader) => reader.get::<SongRequestedBy>().unwrap().to_owned(),
-                                Err(_) => String::from("Unknown"),
+        msg.reply(ctx, {
+            if !handler.queue().is_empty() {
+                handler
+                    .queue()
+                    .current_queue()
+                    .iter()
+                    .enumerate()
+                    .map(|(position, track)| {
+                        format!(
+                            "**{}.** {} | *Requested By: {}*",
+                            position + 1,
+                            track.metadata().title.as_ref().unwrap_or(&String::new()),
+                            {
+                                match track.typemap().try_read() {
+                                    Ok(reader) => {
+                                        reader.get::<SongRequestedBy>().unwrap().to_owned()
+                                    }
+                                    Err(_) => String::from("Unknown"),
+                                }
                             }
-                        }
-                    )
-                })
-                .collect::<Vec<String>>()
-                .join("\n"),
-        )
+                        )
+                    })
+                    .collect::<Vec<String>>()
+                    .join("\n")
+            } else {
+                String::from(
+                    "The queue is empty! Use the *play command* to add something to the queue.",
+                )
+            }
+        })
         .await?;
     } else {
         error!("Couldn't retreive the songbird voice manager");
