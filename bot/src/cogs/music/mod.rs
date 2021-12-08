@@ -1,15 +1,18 @@
 pub mod utils;
 
-use log::{error, trace};
+use log::{error, trace, warn};
+use num_traits::ToPrimitive;
 use serenity::{
+    builder::CreateEmbed,
     framework::standard::{
         macros::{command, group},
         Args, CommandResult,
     },
     model::prelude::*,
     prelude::*,
+    utils::Color,
 };
-use songbird::tracks::LoopState;
+use songbird::tracks::{LoopState, PlayMode};
 use std::time::Duration;
 use utils::*;
 
@@ -558,6 +561,140 @@ async fn queue(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     Ok(())
 }
 
+#[command]
+#[only_in(guilds)]
+#[aliases("np")]
+async fn nowplaying(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
+    let guild = msg.guild(&ctx.cache).await.unwrap();
+
+    if let Some(mut voice_manager) = songbird::get(ctx).await {
+        voice_manager = voice_manager.clone();
+
+        let handler_lock = if let Some(hl) = voice_manager.get(guild.id) {
+            hl
+        } else {
+            // User not in vc
+            msg.reply(ctx, "I aint even in a vc").await?;
+
+            return Ok(());
+        };
+
+        let handler = handler_lock.lock().await;
+
+        let np_track = match handler.queue().current() {
+            Some(track) => track,
+            None => {
+                msg.reply(
+                    ctx,
+                    "There is nothing playing, use the *play command* to play something.",
+                )
+                .await?;
+                return Ok(());
+            }
+        };
+
+        let np_info = np_track.get_info().await?;
+
+        let track_progress = match np_track.get_info().await {
+            Ok(state) => state.position,
+            Err(why) => {
+                warn!("Couldnt get info of track: {}", why);
+                Duration::from_secs(0)
+            }
+        };
+
+        let np_metadata = np_track.metadata();
+        let np_duration = np_metadata.duration.unwrap_or(Duration::from_secs(1));
+
+        let footer_text_loop = match np_info.loops {
+            LoopState::Finite(0) => "",
+            LoopState::Infinite | LoopState::Finite(_) => "🔁",
+        };
+
+        let footer_text_pause = match np_info.playing {
+            PlayMode::Pause => "▶️",
+            PlayMode::Play => "⏸️",
+            _ => unreachable!(),
+        };
+
+        let mut footer_text_volume = if np_info.volume >= 66.0 {
+            "🔊 "
+        } else if np_info.volume >= 33.0 {
+            "🔉 "
+        } else if np_info.volume >= 1.0 {
+            "🔈 "
+        } else {
+            "🔇 "
+        }
+        .to_owned();
+
+        footer_text_volume += &(np_info.volume * 100.0).to_string();
+
+        let np_embed = CreateEmbed::default()
+            .title("Now Playing")
+            .url(np_metadata.source_url.as_ref().unwrap_or(&String::new()))
+            .color(Color::from_rgb(4, 105, 207))
+            .thumbnail(np_metadata.thumbnail.as_ref().unwrap_or(&String::from(
+                "https://bitsofco.de/content/images/2018/12/broken-1.png",
+            )))
+            .description(format!(
+                "*{}* \n\n **{} / {}**  {}",
+                np_metadata.title.as_ref().unwrap_or(&String::new()),
+                track_progress.to_human_readable(),
+                np_duration.to_human_readable(),
+                {
+                    let seeker = "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬";
+                    let seeker_button = ":radio_button:";
+
+                    let progress_ratio: f64 =
+                        track_progress.as_secs_f64() / np_duration.as_secs() as f64;
+
+                    let seeker_pos = (((seeker.chars().count()) as f64) * progress_ratio)
+                        .round()
+                        .to_usize()
+                        .unwrap();
+
+                    seeker
+                        .chars()
+                        .into_iter()
+                        .enumerate()
+                        .map(|(i, c)| {
+                            if i == seeker_pos {
+                                seeker_button.to_string()
+                            } else {
+                                c.to_string()
+                            }
+                        })
+                        .collect::<Vec<String>>()
+                        .join("")
+                }
+            ))
+            .footer(|f| {
+                f.text(format!(
+                    "Requested by: {} || {} {} {}",
+                    {
+                        match np_track.typemap().try_read() {
+                            Ok(reader) => reader.get::<SongRequestedBy>().unwrap().clone(),
+                            Err(_) => String::from("Unknown"),
+                        }
+                    },
+                    footer_text_loop,
+                    footer_text_pause,
+                    footer_text_volume,
+                ))
+            })
+            .to_owned();
+
+        msg.channel_id
+            .send_message(ctx, |m| m.set_embed(np_embed))
+            .await?;
+    } else {
+        error!("Couldn't retreive the songbird voice manager");
+        return Ok(());
+    }
+    Ok(())
+}
+
 #[group]
 #[commands(
     play,
@@ -572,6 +709,7 @@ async fn queue(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     stop,
     forward,
     backward,
-    queue
+    queue,
+    nowplaying
 )]
 pub struct Music;

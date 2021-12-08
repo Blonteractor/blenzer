@@ -5,7 +5,7 @@ use songbird::{
     tracks::TrackHandle,
     Call,
 };
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 use youtube_dl::{SearchOptions, SingleVideo, YoutubeDl, YoutubeDlOutput};
 
 pub async fn get_song(url: impl ToString) -> Result<Input, input::error::Error> {
@@ -106,4 +106,103 @@ pub struct SongRequestedBy;
 
 impl TypeMapKey for SongRequestedBy {
     type Value = String;
+}
+
+pub trait HumanReadable {
+    fn to_human_readable(&self) -> String;
+
+    fn from_human_readable(query: String) -> Option<Self>
+    where
+        Self: Sized;
+}
+
+impl HumanReadable for Duration {
+    fn to_human_readable(&self) -> String {
+        let total_secs = self.as_secs();
+        let hours = total_secs / 3600;
+        let minutes = total_secs / 60;
+        let secs = total_secs % 60;
+
+        let minutes_str = if minutes < 10 {
+            format!("0{}:", minutes)
+        } else {
+            format!("{}:", minutes)
+        };
+
+        let seconds_str = if secs < 10 {
+            format!("0{}", secs)
+        } else {
+            format!("{}", secs)
+        };
+
+        let hours_str = if hours == 0 {
+            String::new()
+        } else if hours < 10 {
+            format!("0{}:", hours)
+        } else {
+            format!("{}:", hours)
+        };
+
+        format!("{}{}{}", hours_str, minutes_str, seconds_str)
+    }
+
+    fn from_human_readable(query: String) -> Option<Self> {
+        let query_vec = query
+            .split(":")
+            .map(|s| match s.parse::<i64>() {
+                Ok(i) => i,
+                Err(_) => -1,
+            })
+            .collect::<Vec<i64>>();
+
+        let count = query_vec.len();
+
+        for i in &query_vec {
+            if *i == -1 {
+                return None;
+            }
+        }
+
+        if count == 1 {
+            Some(Duration::from_secs(
+                (query_vec.into_iter().next().unwrap()) as u64,
+            ))
+        } else if count == 2 {
+            let mut iter = query_vec.into_iter();
+            Some(Duration::from_secs(
+                (iter.next().unwrap() * 60 + iter.next().unwrap()) as u64,
+            ))
+        } else if count == 3 {
+            let mut iter = query_vec.into_iter();
+            Some(Duration::from_secs(
+                (iter.next().unwrap() * 3600 + iter.next().unwrap() * 60 + iter.next().unwrap())
+                    as u64,
+            ))
+        } else {
+            None
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::super::utils::*;
+    use std::time::Duration;
+    #[test]
+    fn duration_parser() {
+        let parsed = Duration::from_human_readable(String::from("23:17")).unwrap();
+        assert_eq!(parsed.as_secs(), 23 * 60 + 17);
+
+        let parsed = Duration::from_human_readable(String::from("06:23:17")).unwrap();
+        assert_eq!(parsed.as_secs(), 06 * 3600 + 23 * 60 + 17);
+
+        let parsed = Duration::from_human_readable(String::from("17")).unwrap();
+        assert_eq!(parsed.as_secs(), 17);
+
+        let parsed = Duration::from_human_readable(String::from("07")).unwrap();
+        assert_eq!(parsed.as_secs(), 7);
+
+        let parsed = Duration::from_human_readable(String::from("02:57")).unwrap();
+        assert_eq!(parsed.as_secs(), 2 * 60 + 57);
+    }
 }
