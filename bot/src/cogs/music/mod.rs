@@ -138,7 +138,7 @@ async fn stop(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             queue.clear();
         });
 
-        msg.reply(ctx, "Music paused").await?;
+        msg.reply(ctx, "Music Stopped").await?;
     } else {
         error!("Couldn't retreive the songbird voice manager");
         return Ok(());
