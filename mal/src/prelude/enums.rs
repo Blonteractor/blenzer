@@ -129,6 +129,7 @@ pub enum MediaType {
     ONA,
     OVA,
     Movie,
+    Music,
     Special,
     Manga,
     Manhwa,

@@ -42,7 +42,10 @@ impl ToDoublePagedEmbed for Anime {
             .title(&title)
             .url(&self.url())
             .description(synopsis)
-            .image(&self.cover_art.large)
+            .image(match &self.cover_art {
+                Some(pic) => pic.large.clone(),
+                None => String::from("https://bitsofco.de/content/images/2018/12/broken-1.png"),
+            })
             .color(Color::from_rgb(4, 105, 207))
             .to_owned();
 
@@ -175,7 +178,10 @@ impl ToDoublePagedEmbed for Manga {
             .title(&title)
             .url(&self.url())
             .description(synopsis)
-            .image(&self.cover_art.large)
+            .image(match &self.cover_art {
+                Some(pic) => pic.large.clone(),
+                None => String::from("https://bitsofco.de/content/images/2018/12/broken-1.png"),
+            })
             .color(Color::from_rgb(4, 105, 207))
             .to_owned();
 
