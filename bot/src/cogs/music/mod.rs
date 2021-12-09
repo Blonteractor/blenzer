@@ -20,7 +20,21 @@ use utils::*;
 async fn play(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let query = args.rest();
 
-    let song = search_song(query).await?;
+    let song_search_result =
+        if query.starts_with("https://www.") || query.starts_with("http://www.") {
+            get_song(query).await
+        } else {
+            search_song(query).await
+        };
+
+    let song = match song_search_result {
+        Ok(inp) => inp,
+        Err(_) => {
+            msg.reply(ctx, "Couldn't find anything with that query.")
+                .await?;
+            return Ok(());
+        }
+    };
 
     let guild = msg.guild(&ctx.cache).await.unwrap();
 
@@ -47,7 +61,7 @@ async fn play(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
         {
             let mut writer = latest_track.typemap().write().await;
-            writer.insert::<SongRequestedBy>(msg.author.name.clone());
+            writer.insert::<SongRequestedBy>(msg.author.id);
         }
 
         let embed = song_embed(&latest_track, queue.len())?
@@ -220,6 +234,61 @@ async fn seek(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         }
 
         msg.reply(ctx, format!("Seeked to {}s", time)).await?;
+    } else {
+        error!("Couldn't retreive the songbird voice manager");
+        return Ok(());
+    }
+    Ok(())
+}
+
+#[command]
+#[only_in(guilds)]
+#[aliases("vol")]
+async fn volume(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let volume = match args.single::<u64>() {
+        Ok(vol) => {
+            if vol <= 100 {
+                vol
+            } else {
+                msg.reply(ctx, "Invalid volume, enter a number between 0 and 100.")
+                    .await?;
+                return Ok(());
+            }
+        }
+        Err(_) => {
+            msg.reply(ctx, "Invalid volume, enter a number between 0 and 100.")
+                .await?;
+            return Ok(());
+        }
+    };
+
+    let guild = msg.guild(&ctx.cache).await.unwrap();
+
+    if let Some(mut voice_manager) = songbird::get(ctx).await {
+        voice_manager = voice_manager.clone();
+
+        let handler_lock = if let Some(hl) = voice_manager.get(guild.id) {
+            hl
+        } else {
+            // User not in vc
+            msg.reply(ctx, "I aint even in a vc").await?;
+
+            return Ok(());
+        };
+
+        let handler = handler_lock.lock().await;
+
+        match handler.queue().current() {
+            Some(track) => {
+                track.set_volume(volume as f32 / 100.0).unwrap();
+            }
+            None => {
+                msg.reply(ctx, "Nothing's playing").await?;
+            }
+        }
+
+        msg.reply(ctx, format!("Track volume set to {}", volume))
+            .await?;
     } else {
         error!("Couldn't retreive the songbird voice manager");
         return Ok(());
@@ -523,37 +592,39 @@ async fn queue(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 
         let handler = handler_lock.lock().await;
 
-        msg.reply(ctx, {
-            if !handler.queue().is_empty() {
-                handler
-                    .queue()
-                    .current_queue()
-                    .iter()
-                    .enumerate()
-                    .map(|(position, track)| {
-                        format!(
-                            "**{}.** {} | *Requested By: {}*",
-                            position + 1,
-                            track.metadata().title.as_ref().unwrap_or(&String::new()),
-                            {
-                                match track.typemap().try_read() {
-                                    Ok(reader) => {
-                                        reader.get::<SongRequestedBy>().unwrap().to_owned()
-                                    }
-                                    Err(_) => String::from("Unknown"),
-                                }
-                            }
-                        )
-                    })
-                    .collect::<Vec<String>>()
-                    .join("\n")
-            } else {
-                String::from(
-                    "The queue is empty! Use the *play command* to add something to the queue.",
-                )
+        let queue = handler.queue();
+
+        let queue_string = if !queue.is_empty() {
+            let mut queue_string = String::new();
+
+            for (position, track) in queue.current_queue().iter().enumerate() {
+                let track_str = format!(
+                    "**{}.** {} | *Requested By: {}*",
+                    position + 1,
+                    track.metadata().title.as_ref().unwrap_or(&String::new()),
+                    track
+                        .typemap()
+                        .read()
+                        .await
+                        .get::<SongRequestedBy>()
+                        .unwrap()
+                        .to_user_cached(ctx)
+                        .await
+                        .unwrap_or_default()
+                        .name
+                );
+
+                queue_string += &track_str;
             }
-        })
-        .await?;
+
+            queue_string
+        } else {
+            String::from(
+                "The queue is empty! Use the *play command* to add something to the queue.",
+            )
+        };
+
+        msg.reply(ctx, queue_string).await?;
     } else {
         error!("Couldn't retreive the songbird voice manager");
         return Ok(());
@@ -617,16 +688,25 @@ async fn nowplaying(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
             _ => unreachable!(),
         };
 
-        let mut footer_text_volume = if np_info.volume >= 66.0 {
+        let mut footer_text_volume = if np_info.volume >= 0.66 {
             "🔊 "
-        } else if np_info.volume >= 33.0 {
+        } else if np_info.volume >= 0.33 {
             "🔉 "
-        } else if np_info.volume >= 1.0 {
+        } else if np_info.volume >= 0.01 {
             "🔈 "
         } else {
             "🔇 "
         }
         .to_owned();
+
+        let requested_by = np_track
+            .typemap()
+            .read()
+            .await
+            .get::<SongRequestedBy>()
+            .unwrap()
+            .to_user(ctx)
+            .await;
 
         footer_text_volume += &(np_info.volume * 100.0).to_string();
 
@@ -673,8 +753,8 @@ async fn nowplaying(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                 f.text(format!(
                     "Requested by: {} || {} {} {}",
                     {
-                        match np_track.typemap().try_read() {
-                            Ok(reader) => reader.get::<SongRequestedBy>().unwrap().clone(),
+                        match requested_by {
+                            Ok(ref user) => user.name.clone(),
                             Err(_) => String::from("Unknown"),
                         }
                     },
@@ -682,6 +762,16 @@ async fn nowplaying(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
                     footer_text_pause,
                     footer_text_volume,
                 ))
+                .icon_url({
+                    match requested_by {
+                        Ok(ref user) => user.avatar_url().unwrap_or(String::from(
+                            "https://bitsofco.de/content/images/2018/12/broken-1.png",
+                        )),
+                        Err(_) => {
+                            String::from("https://bitsofco.de/content/images/2018/12/broken-1.png")
+                        }
+                    }
+                })
             })
             .to_owned();
 
@@ -710,6 +800,7 @@ async fn nowplaying(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
     forward,
     backward,
     queue,
-    nowplaying
+    nowplaying,
+    volume
 )]
 pub struct Music;

@@ -1,5 +1,5 @@
 use log::error;
-use serenity::{builder::CreateEmbed, prelude::*, utils::Color};
+use serenity::{builder::CreateEmbed, model::id::UserId, prelude::*, utils::Color};
 use songbird::{
     input::{self, Input, Restartable},
     tracks::TrackHandle,
@@ -105,7 +105,7 @@ pub async fn add_song_to_queue(
 pub struct SongRequestedBy;
 
 impl TypeMapKey for SongRequestedBy {
-    type Value = String;
+    type Value = UserId;
 }
 
 pub trait HumanReadable {
