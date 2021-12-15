@@ -27,7 +27,7 @@ features=["collector", "unstable_discord_api", "builder", "model", "voice", "rus
 
 [dependencies.songbird]
 version = "0.2.0"
-features = ["serenity-rustls", "driver", "builtin-queue"]
+features = ["serenity-rustls", "driver", "builtin-queue", "yt-dlp"] 
 
 [dependencies.mal]
 path = "../mal"
