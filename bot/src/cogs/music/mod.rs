@@ -599,7 +599,7 @@ async fn queue(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 
             for (position, track) in queue.current_queue().iter().enumerate() {
                 let track_str = format!(
-                    "**{}.** {} | *Requested By: {}*",
+                    "**{}.** {} | *Requested By: {}* \n",
                     position + 1,
                     track.metadata().title.as_ref().unwrap_or(&String::new()),
                     track
