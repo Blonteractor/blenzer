@@ -32,8 +32,6 @@ use cogs::music::*;
 use cogs::utility::*;
 use cogs::weeb::*;
 
-const BOT_PREFIX: &str = "bl ";
-
 struct Handler;
 
 #[async_trait]
@@ -83,6 +81,8 @@ async fn main() {
     env_logger::init();
 
     let token = env::var("DISCORD_TOKEN").unwrap();
+    let bot_prefix = env::var("BOT_PREFIX").unwrap();
+
     let application_id = env::var("DISCORD_APPLICATION_ID")
         .unwrap()
         .parse::<u64>()
@@ -90,7 +90,7 @@ async fn main() {
 
     //# Build the framework (setting prefix, command hooks, etc)
     let framework = StandardFramework::new()
-        .configure(|c| c.prefix(BOT_PREFIX))
+        .configure(|c| c.prefix(bot_prefix))
         .unrecognised_command(unrecognised_command_hook)
         .on_dispatch_error(command_error_hook)
         .after(after_hook)
