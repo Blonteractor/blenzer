@@ -1,12 +1,19 @@
 use log::error;
-use serenity::{builder::CreateEmbed, model::id::UserId, prelude::*, utils::Color};
+use serenity::{
+    builder::CreateEmbed,
+    framework::standard::{Args, CommandResult},
+    model::{channel::Message, id::UserId},
+    prelude::*,
+    utils::Color,
+};
 use songbird::{
     input::{self, Input, Restartable},
     tracks::TrackHandle,
-    Call,
 };
-use std::{sync::Arc, time::Duration};
+use std::{future::Future, sync::Arc, time::Duration};
 use youtube_dl::{SearchOptions, SingleVideo, YoutubeDl, YoutubeDlOutput};
+
+pub type VoiceHandler = std::sync::Arc<tokio::sync::Mutex<songbird::Call>>;
 
 pub async fn get_song(url: impl ToString) -> Result<Input, input::error::Error> {
     let source = match Restartable::ytdl(url.to_string(), true).await {
@@ -68,7 +75,7 @@ pub fn song_embed(
 
 pub async fn play_song_now(
     url: String,
-    handler_lock: Arc<Mutex<Call>>,
+    handler_lock: Arc<VoiceHandler>,
 ) -> Result<TrackHandle, songbird::input::error::Error> {
     let mut handler = handler_lock.lock().await;
 
@@ -85,7 +92,7 @@ pub async fn play_song_now(
 
 pub async fn add_song_to_queue(
     url: String,
-    handler_lock: &Arc<Mutex<Call>>,
+    handler_lock: &Arc<VoiceHandler>,
 ) -> Result<(), songbird::input::error::Error> {
     let mut handler = handler_lock.lock().await;
 
@@ -102,6 +109,36 @@ pub async fn add_song_to_queue(
     Ok(())
 }
 
+pub async fn with_handler<'a, Fut>(
+    ctx: &'a Context,
+    msg: &'a Message,
+    args: Args,
+    execute: impl FnOnce(&'a Context, &'a Message, Args, VoiceHandler) -> Fut,
+) -> CommandResult
+where
+    Fut: Future<Output = CommandResult>,
+{
+    let guild = msg.guild(&ctx.cache).await.unwrap();
+
+    if let Some(mut voice_manager) = songbird::get(ctx).await {
+        voice_manager = voice_manager.clone();
+
+        let handler_lock = if let Some(hl) = voice_manager.get(guild.id) {
+            hl
+        } else {
+            // User not in vc
+            msg.reply(ctx, "I aint even in a vc").await?;
+
+            return Ok(());
+        };
+
+        execute(ctx, msg, args, handler_lock).await?;
+    } else {
+        error!("Couldn't retreive the songbird voice manager");
+        return Ok(());
+    }
+    Ok(())
+}
 pub struct SongRequestedBy;
 
 impl TypeMapKey for SongRequestedBy {

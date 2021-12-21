@@ -471,33 +471,28 @@ async fn resume(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
 
 #[command]
 #[only_in(guilds)]
-async fn skip(ctx: &Context, msg: &Message, _: Args) -> CommandResult {
-    let guild = msg.guild(&ctx.cache).await.unwrap();
+async fn skip(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    async fn skip_track(
+        ctx: &Context,
+        msg: &Message,
+        _: Args,
+        handler: VoiceHandler,
+    ) -> CommandResult {
+        let handler = handler.lock().await;
 
-    if let Some(mut voice_manager) = songbird::get(ctx).await {
-        voice_manager = voice_manager.clone();
+        let skip_result = handler.queue().skip();
+        drop(handler);
 
-        let handler_lock = if let Some(hl) = voice_manager.get(guild.id) {
-            hl
-        } else {
-            // User not in vc
-            msg.reply(ctx, "I aint even in a vc").await?;
-
-            return Ok(());
-        };
-
-        let handler = handler_lock.lock().await;
-
-        if let Err(_) = handler.queue().skip() {
+        if let Err(_) = skip_result {
             msg.reply(ctx, "Already at last song in queue").await?;
         } else {
             msg.reply(ctx, "*Track skipped*").await?;
         }
-    } else {
-        error!("Couldn't retreive the songbird voice manager");
-        return Ok(());
+
+        Ok(())
     }
-    Ok(())
+
+    with_handler(ctx, msg, args, skip_track).await
 }
 
 #[command]
@@ -510,8 +505,7 @@ async fn join(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
         .get(&msg.author.id)
         .and_then(|state| state.channel_id)
     {
-        if let Some(mut voice_manager) = songbird::get(ctx).await {
-            voice_manager = voice_manager.clone();
+        if let Some(voice_manager) = songbird::get(ctx).await {
             voice_manager.join(guild.id, id).await.1?;
 
             trace!(
@@ -546,8 +540,7 @@ async fn leave(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
         .get(&msg.author.id)
         .and_then(|state| state.channel_id)
     {
-        if let Some(mut voice_manager) = songbird::get(ctx).await {
-            voice_manager = voice_manager.clone();
+        if let Some(voice_manager) = songbird::get(ctx).await {
             voice_manager.leave(guild.id).await?;
 
             trace!(
