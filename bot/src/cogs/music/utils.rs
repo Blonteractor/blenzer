@@ -109,20 +109,19 @@ pub async fn add_song_to_queue(
     Ok(())
 }
 
-pub async fn with_handler<'a, Fut>(
+pub async fn with_handler<'a, Fut, Cmd>(
     ctx: &'a Context,
     msg: &'a Message,
     args: Args,
-    execute: impl FnOnce(&'a Context, &'a Message, Args, VoiceHandler) -> Fut,
+    execute: Cmd,
 ) -> CommandResult
 where
     Fut: Future<Output = CommandResult>,
+    Cmd: FnOnce(&'a Context, &'a Message, Args, VoiceHandler) -> Fut,
 {
     let guild = msg.guild(&ctx.cache).await.unwrap();
 
-    if let Some(mut voice_manager) = songbird::get(ctx).await {
-        voice_manager = voice_manager.clone();
-
+    if let Some(voice_manager) = songbird::get(ctx).await {
         let handler_lock = if let Some(hl) = voice_manager.get(guild.id) {
             hl
         } else {
