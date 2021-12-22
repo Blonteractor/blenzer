@@ -9,6 +9,7 @@ use serenity::{
 use songbird::{
     input::{self, Input, Restartable},
     tracks::TrackHandle,
+    Songbird,
 };
 use std::{future::Future, sync::Arc, time::Duration};
 use youtube_dl::{SearchOptions, SingleVideo, YoutubeDl, YoutubeDlOutput};
@@ -117,7 +118,7 @@ pub async fn with_handler<'a, Fut, Cmd>(
 ) -> CommandResult
 where
     Fut: Future<Output = CommandResult>,
-    Cmd: FnOnce(&'a Context, &'a Message, Args, VoiceHandler) -> Fut,
+    Cmd: FnOnce(&'a Context, &'a Message, Args, VoiceHandler, Arc<Songbird>) -> Fut,
 {
     let guild = msg.guild(&ctx.cache).await.unwrap();
 
@@ -131,7 +132,30 @@ where
             return Ok(());
         };
 
-        execute(ctx, msg, args, handler_lock).await?;
+        execute(ctx, msg, args, handler_lock, voice_manager).await?;
+    } else {
+        error!("Couldn't retreive the songbird voice manager");
+        return Ok(());
+    }
+    Ok(())
+}
+
+pub async fn try_with_handler<'a, Fut, Cmd>(
+    ctx: &'a Context,
+    msg: &'a Message,
+    args: Args,
+    execute: Cmd,
+) -> CommandResult
+where
+    Fut: Future<Output = CommandResult>,
+    Cmd: FnOnce(&'a Context, &'a Message, Args, Option<VoiceHandler>, Arc<Songbird>) -> Fut,
+{
+    let guild = msg.guild(&ctx.cache).await.unwrap();
+
+    if let Some(voice_manager) = songbird::get(ctx).await {
+        let handler_lock = voice_manager.get(guild.id);
+
+        execute(ctx, msg, args, handler_lock, voice_manager).await?;
     } else {
         error!("Couldn't retreive the songbird voice manager");
         return Ok(());
