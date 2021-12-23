@@ -11,7 +11,7 @@ use serenity::prelude::*;
 use serenity::utils::Color;
 use std::time::Duration;
 
-pub const INVALID_INPUT_MSG: &'static str =
+pub const INVALID_INPUT_MSG: &str =
     "Invalid input, give an integer greater than 0 and less than the number of results pls.";
 
 pub trait ToDoublePagedEmbed {
@@ -300,7 +300,7 @@ where
         .to_owned()
 }
 
-pub fn cleanly_join_vec(to_join: &Vec<impl ToString>) -> String {
+pub fn cleanly_join_vec(to_join: &[impl ToString]) -> String {
     to_join
         .iter()
         .map(|g| format!("`{}`", &g.to_string()))
@@ -325,8 +325,7 @@ where
 {
     let mut current_object = unsafe { to_paginate_on.get_unchecked_mut(current - 1) };
 
-    let mut cached = Vec::new();
-    cached.push(current);
+    let mut cached = vec![current];
 
     let mut interaction_stream = msg
         .await_component_interactions(ctx)
@@ -336,12 +335,12 @@ where
     while let Some(interaction) = interaction_stream.next().await {
         if interaction.data.custom_id == "action_1" {
             msg.edit(ctx, |m| {
-                m.set_embed(on_action_1(&current_object).unwrap_or_default().clone())
+                m.set_embed(on_action_1(current_object).unwrap_or_default())
             })
             .await?;
         } else if interaction.data.custom_id == "action_2" {
             msg.edit(ctx, |m| {
-                m.set_embed(on_action_2(&current_object).unwrap_or_default().clone())
+                m.set_embed(on_action_2(current_object).unwrap_or_default())
             })
             .await?;
         } else {

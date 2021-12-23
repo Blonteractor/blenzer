@@ -8,7 +8,6 @@ use std::env;
 
 use dotenv::dotenv;
 
-use env_logger;
 use log::{debug, error, info};
 
 use serenity::async_trait;

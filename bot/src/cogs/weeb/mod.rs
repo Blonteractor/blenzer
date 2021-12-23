@@ -49,8 +49,7 @@ async fn anime(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
         let (anime_embed_1, _) = anime.double_paged_embed();
 
-        let mut cached = Vec::new();
-        cached.push(choice_int);
+        //let mut cached = vec![choice_int];
 
         sent_choices_message
             .edit(ctx, |m| {
@@ -114,8 +113,7 @@ async fn manga(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
         let (manga_embed_1, _) = manga.double_paged_embed();
 
-        let mut cached = Vec::new();
-        cached.push(choice_int);
+        //let cached = vec![choice_int];
 
         sent_choices_message
             .edit(ctx, |m| {

@@ -1,6 +1,6 @@
 pub mod utils;
 
-use log::{debug, trace, warn};
+use log::{trace, warn};
 use num_traits::ToPrimitive;
 use serenity::{
     builder::CreateEmbed,
@@ -34,7 +34,6 @@ async fn play(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         {
             if query.contains("list=") {
                 msg.reply(ctx, "WARNING: Playing playlists is kinda slow, it takes almost 3 sec / song to queue it so be patient kthxbye.").await?;
-                debug!("Getting pl...");
                 get_playlist(query).await
             } else {
                 vec![get_song(query).await]
@@ -42,7 +41,6 @@ async fn play(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         } else {
             vec![search_song(query).await]
         };
-        debug!("Got");
 
         let mut songs = Vec::new();
 
@@ -86,7 +84,7 @@ async fn play(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                 writer.insert::<SongRequestedBy>(msg.author.id);
             }
 
-            song_embed(&latest_track, queue.len())
+            song_embed(latest_track, queue.len())
                 .timestamp(&msg.timestamp)
                 .footer(|f| {
                     f.text(format!("Requested by {}", &msg.author.name))
@@ -127,7 +125,7 @@ async fn pause(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         let pause_result = handler.queue().pause();
         drop(handler);
 
-        if let Err(_) = pause_result {
+        if pause_result.is_err() {
             msg.reply(ctx, "Track not playing").await?;
         } else {
             msg.reply(ctx, "*Track paused*").await?;
@@ -469,7 +467,7 @@ async fn resume(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         let res_result = handler.queue().resume();
         drop(handler);
 
-        if let Err(_) = res_result {
+        if res_result.is_err() {
             msg.reply(ctx, "Track not paused").await?;
         } else {
             msg.reply(ctx, "*Track resumed*").await?;
@@ -496,7 +494,7 @@ async fn skip(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         let skip_result = handler.queue().skip();
         drop(handler);
 
-        if let Err(_) = skip_result {
+        if skip_result.is_err() {
             msg.reply(ctx, "Already at last song in queue").await?;
         } else {
             msg.reply(ctx, "*Track skipped*").await?;
@@ -685,7 +683,9 @@ async fn nowplaying(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         };
 
         let np_metadata = np_track.metadata();
-        let np_duration = np_metadata.duration.unwrap_or(Duration::from_secs(1));
+        let np_duration = np_metadata
+            .duration
+            .unwrap_or_else(|| Duration::from_secs(1));
 
         let footer_text_loop = match np_info.loops {
             LoopState::Finite(0) => "",
@@ -774,9 +774,9 @@ async fn nowplaying(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                 ))
                 .icon_url({
                     match requested_by {
-                        Ok(ref user) => user.avatar_url().unwrap_or(String::from(
-                            "https://bitsofco.de/content/images/2018/12/broken-1.png",
-                        )),
+                        Ok(ref user) => user.avatar_url().unwrap_or_else(|| {
+                            String::from("https://bitsofco.de/content/images/2018/12/broken-1.png")
+                        }),
                         Err(_) => {
                             String::from("https://bitsofco.de/content/images/2018/12/broken-1.png")
                         }

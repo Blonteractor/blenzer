@@ -58,7 +58,7 @@ pub async fn search_songs(
             .into()));
         }
 
-        return videos;
+        videos
     } else {
         unreachable!()
     }
@@ -77,7 +77,7 @@ pub async fn get_playlist(url: impl AsRef<str>) -> Vec<Result<Input, input::erro
         let search_results_vec = search_result.entries.unwrap_or_default();
         let mut videos = Vec::with_capacity(search_results_vec.len());
 
-        debug!("Making serenity do shit");
+        debug!("Songbird getting playlist...");
         for vid in search_results_vec.into_iter() {
             videos.push(Ok(Restartable::ytdl(
                 format!("https://www.youtube.com/watch?v={}", vid.id),
@@ -87,9 +87,9 @@ pub async fn get_playlist(url: impl AsRef<str>) -> Vec<Result<Input, input::erro
             .unwrap()
             .into()));
         }
-        debug!("serenity did shit.");
+        debug!("Songbird got playlist.");
 
-        return videos;
+        videos
     } else {
         unreachable!()
     }
@@ -277,11 +277,8 @@ impl HumanReadable for Duration {
 
     fn from_human_readable(query: String) -> Option<Self> {
         let query_vec = query
-            .split(":")
-            .map(|s| match s.parse::<i64>() {
-                Ok(i) => i,
-                Err(_) => -1,
-            })
+            .split(':')
+            .map(|s| s.parse::<i64>().unwrap_or(-1))
             .collect::<Vec<i64>>();
 
         let count = query_vec.len();

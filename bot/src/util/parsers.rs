@@ -36,7 +36,7 @@ pub async fn member<'a>(
     results
 }
 
-pub fn url<'a>(args: &mut Args) -> Vec<String> {
+pub fn url(args: &mut Args) -> Vec<String> {
     let mut results: Vec<String> = Vec::new();
 
     loop {
