@@ -1,6 +1,6 @@
 pub mod utils;
 
-use log::{trace, warn};
+use log::{debug, trace, warn};
 use num_traits::ToPrimitive;
 use serenity::{
     builder::CreateEmbed,
@@ -29,21 +29,34 @@ async fn play(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     ) -> CommandResult {
         let query = args.rest();
 
-        let song_search_result =
-            if query.starts_with("https://www.") || query.starts_with("http://www.") {
-                get_song(query).await
+        let song_search_result = if query.starts_with("https://www.")
+            || query.starts_with("http://www.")
+        {
+            if query.contains("list=") {
+                msg.reply(ctx, "WARNING: Playing playlists is kinda slow, it takes almost 3 sec / song to queue it so be patient kthxbye.").await?;
+                debug!("Getting pl...");
+                get_playlist(query).await
             } else {
-                search_song(query).await
-            };
-
-        let song = match song_search_result {
-            Ok(inp) => inp,
-            Err(_) => {
-                msg.reply(ctx, "Couldn't find anything with that query.")
-                    .await?;
-                return Ok(());
+                vec![get_song(query).await]
             }
+        } else {
+            vec![search_song(query).await]
         };
+        debug!("Got");
+
+        let mut songs = Vec::new();
+
+        for song in song_search_result {
+            songs.push(match song {
+                Ok(inp) => inp,
+                Err(_) => {
+                    msg.reply(ctx, "Couldn't find anything with that query.")
+                        .await?;
+                    continue;
+                }
+            })
+        }
+
         if handler_lock.is_none() {
             // User not in vc, join
             join(ctx, msg, args).await?;
@@ -55,25 +68,40 @@ async fn play(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         let handler_lock = handler_lock.unwrap();
         let mut handler = handler_lock.lock().await;
 
-        handler.enqueue_source(song);
+        let queue_len = handler.queue().len();
+        let songs_len = songs.len();
+
+        for song in songs {
+            handler.enqueue_source(song);
+        }
 
         let queue = handler.queue().current_queue();
         drop(handler);
 
-        let latest_track = queue.last().unwrap();
+        let embed = if songs_len == 1 {
+            let latest_track = queue.last().unwrap();
 
-        {
-            let mut writer = latest_track.typemap().write().await;
-            writer.insert::<SongRequestedBy>(msg.author.id);
-        }
+            {
+                let mut writer = latest_track.typemap().write().await;
+                writer.insert::<SongRequestedBy>(msg.author.id);
+            }
 
-        let embed = song_embed(&latest_track, queue.len())?
-            .timestamp(&msg.timestamp)
-            .footer(|f| {
-                f.text(format!("Requested by {}", &msg.author.name))
-                    .icon_url(&msg.author.avatar_url().as_ref().unwrap())
-            })
-            .to_owned();
+            song_embed(&latest_track, queue.len())
+                .timestamp(&msg.timestamp)
+                .footer(|f| {
+                    f.text(format!("Requested by {}", &msg.author.name))
+                        .icon_url(&msg.author.avatar_url().as_ref().unwrap())
+                })
+                .to_owned()
+        } else {
+            let latest_tracks = &queue[queue_len..queue_len + songs_len];
+
+            for track in latest_tracks {
+                let mut writer = track.typemap().write().await;
+                writer.insert::<SongRequestedBy>(msg.author.id);
+            }
+            playlist_embed(latest_tracks)
+        };
 
         msg.channel_id
             .send_message(ctx, |m| m.set_embed(embed))
@@ -96,10 +124,10 @@ async fn pause(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     ) -> CommandResult {
         let handler = handler.lock().await;
 
-        let res_result = handler.queue().pause();
+        let pause_result = handler.queue().pause();
         drop(handler);
 
-        if let Err(_) = res_result {
+        if let Err(_) = pause_result {
             msg.reply(ctx, "Track not playing").await?;
         } else {
             msg.reply(ctx, "*Track paused*").await?;
@@ -578,7 +606,6 @@ async fn queue(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         let current_queue = queue.current_queue();
         let is_queue_empty = queue.is_empty();
 
-        drop(queue);
         drop(handler);
 
         let queue_string = if !is_queue_empty {

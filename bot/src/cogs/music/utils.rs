@@ -1,4 +1,4 @@
-use log::error;
+use log::{debug, error};
 use serenity::{
     builder::CreateEmbed,
     framework::standard::{Args, CommandResult},
@@ -12,7 +12,8 @@ use songbird::{
     Songbird,
 };
 use std::{future::Future, sync::Arc, time::Duration};
-use youtube_dl::{SearchOptions, SingleVideo, YoutubeDl, YoutubeDlOutput};
+use tokio::runtime::Handle as RuntimeHandle;
+use youtube_dl::{SearchOptions, YoutubeDl, YoutubeDlOutput};
 
 pub type VoiceHandler = std::sync::Arc<tokio::sync::Mutex<songbird::Call>>;
 
@@ -28,18 +29,67 @@ pub async fn get_song(url: impl ToString) -> Result<Input, input::error::Error> 
     Ok(source.into())
 }
 
-pub fn search_songs(
-    query: impl ToString,
+pub async fn search_songs(
+    query: impl AsRef<str> + Sync + Send + 'static,
     limit: usize,
-) -> Result<Vec<SingleVideo>, youtube_dl::Error> {
-    let ytdl = YoutubeDl::search_for(&SearchOptions::youtube(&query.to_string()).with_count(limit))
-        .extract_audio(false)
-        .run()?;
+) -> Vec<Result<Input, input::error::Error>> {
+    let ytdl = RuntimeHandle::current()
+        .spawn_blocking(move || {
+            YoutubeDl::search_for(&SearchOptions::youtube(query.as_ref()).with_count(limit))
+                .flat_playlist(true)
+                .extract_audio(false)
+                .run()
+                .unwrap()
+        })
+        .await
+        .unwrap();
 
     if let YoutubeDlOutput::Playlist(search_result) = ytdl {
-        let videos = search_result.entries.unwrap_or_default();
+        let search_results_vec = search_result.entries.unwrap_or_default();
+        let mut videos = Vec::with_capacity(search_results_vec.len());
 
-        return Ok(videos);
+        for vid in search_results_vec.into_iter() {
+            videos.push(Ok(Restartable::ytdl(
+                vid.webpage_url.unwrap_or_default(),
+                true,
+            )
+            .await
+            .unwrap()
+            .into()));
+        }
+
+        return videos;
+    } else {
+        unreachable!()
+    }
+}
+
+pub async fn get_playlist(url: impl AsRef<str>) -> Vec<Result<Input, input::error::Error>> {
+    debug!("Making ytdl do shit....");
+    let ytdl = YoutubeDl::new(url.as_ref())
+        .extract_audio(false)
+        .flat_playlist(true)
+        .run()
+        .unwrap();
+    debug!("Ytdl did shit.");
+
+    if let YoutubeDlOutput::Playlist(search_result) = ytdl {
+        let search_results_vec = search_result.entries.unwrap_or_default();
+        let mut videos = Vec::with_capacity(search_results_vec.len());
+
+        debug!("Making serenity do shit");
+        for vid in search_results_vec.into_iter() {
+            videos.push(Ok(Restartable::ytdl(
+                format!("https://www.youtube.com/watch?v={}", vid.id),
+                true,
+            )
+            .await
+            .unwrap()
+            .into()));
+        }
+        debug!("serenity did shit.");
+
+        return videos;
     } else {
         unreachable!()
     }
@@ -56,12 +106,9 @@ pub async fn search_song(query: impl ToString) -> Result<Input, input::error::Er
     Ok(source.into())
 }
 
-pub fn song_embed(
-    track_handle: &TrackHandle,
-    position: usize,
-) -> Result<CreateEmbed, youtube_dl::Error> {
+pub fn song_embed(track_handle: &TrackHandle, position: usize) -> CreateEmbed {
     let metadata = track_handle.metadata();
-    Ok(CreateEmbed::default()
+    CreateEmbed::default()
         .image(metadata.thumbnail.as_ref().unwrap_or(&String::default()))
         .title("Song added to queue")
         .description(format!(
@@ -71,7 +118,29 @@ pub fn song_embed(
         ))
         .url(metadata.source_url.as_ref().unwrap_or(&String::default()))
         .color(Color::from_rgb(4, 105, 207))
-        .to_owned())
+        .to_owned()
+}
+
+pub fn playlist_embed(tracks: &[TrackHandle]) -> CreateEmbed {
+    let metadata = tracks.iter().next().unwrap().metadata();
+    let mut description = String::new();
+
+    for (i, track) in tracks.iter().enumerate() {
+        let metadata = track.metadata();
+        description += &format!(
+            "**{}.** *{}* \n",
+            i + 1,
+            metadata.title.as_ref().unwrap_or(&String::default())
+        );
+    }
+
+    CreateEmbed::default()
+        .image(metadata.thumbnail.as_ref().unwrap_or(&String::default()))
+        .title("Playlist added to queue")
+        .description(description)
+        .url(metadata.source_url.as_ref().unwrap_or(&String::default()))
+        .color(Color::from_rgb(4, 105, 207))
+        .to_owned()
 }
 
 pub async fn play_song_now(
@@ -264,5 +333,29 @@ mod test {
 
         let parsed = Duration::from_human_readable(String::from("02:57")).unwrap();
         assert_eq!(parsed.as_secs(), 2 * 60 + 57);
+    }
+
+    #[test]
+    fn yt_pl() {
+        let o = YoutubeDl::new(
+            "https://www.youtube.com/watch?v=GPGdXrQID7c&list=PLDEF999E346D88D70&index=5",
+        )
+        .run()
+        .unwrap();
+
+        match o {
+            YoutubeDlOutput::SingleVideo(_) => {
+                println!("v");
+            }
+            YoutubeDlOutput::Playlist(p) => {
+                println!("p");
+                let _ = p
+                    .entries
+                    .unwrap()
+                    .iter()
+                    .map(|v| println!("{}", v.title))
+                    .collect::<Vec<()>>();
+            }
+        }
     }
 }
