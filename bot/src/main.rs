@@ -1,12 +1,10 @@
-extern crate dotenv;
-
 pub mod cogs;
 pub mod util;
 
-use std::collections::HashSet;
-use std::env;
+#[macro_use]
+extern crate dotenv_codegen;
 
-use dotenv::dotenv;
+use std::collections::HashSet;
 
 use log::{debug, error, info};
 
@@ -76,14 +74,10 @@ async fn after_hook(_: &Context, _: &Message, cmd_name: &str, error: Result<(), 
 
 #[tokio::main]
 async fn main() {
-    dotenv().ok();
     env_logger::init();
-
-    let token = env::var("DISCORD_TOKEN").unwrap();
-    let bot_prefix = env::var("BOT_PREFIX").unwrap();
-
-    let application_id = env::var("DISCORD_APPLICATION_ID")
-        .unwrap()
+    
+    let token = dotenv!("DISCORD_TOKEN");
+    let application_id = dotenv!("DISCORD_APPLICATION_ID")
         .parse::<u64>()
         .unwrap();
 

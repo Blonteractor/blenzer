@@ -6,14 +6,15 @@ pub mod prelude;
 #[macro_use]
 extern crate maplit;
 
-use dotenv::dotenv;
+#[macro_use]
+extern crate dotenv_codegen;
+
 use reqwest::{
     self,
     header::{HeaderMap, HeaderName, HeaderValue},
     Client, Response,
 };
 use std::collections::HashMap;
-use std::env;
 
 pub struct MALClient {
     client_id: String,
@@ -43,13 +44,11 @@ impl MALClient {
     }
 
     pub fn from_env() -> Self {
-        dotenv().ok();
-
         MALClient::new(
-            env::var("MAL_CLIENT_ID").unwrap(),
-            env::var("MAL_CLIENT_SECRET").unwrap(),
-            env::var("MAL_ACCESS_TOKEN").unwrap(),
-            env::var("MAL_REFRESH_TOKEN").unwrap(),
+            dotenv!("MAL_CLIENT_ID"),
+            dotenv!("MAL_CLIENT_SECRET"),
+            dotenv!("MAL_ACCESS_TOKEN"),
+            dotenv!("MAL_REFRESH_TOKEN"),
         )
     }
 
@@ -206,15 +205,12 @@ impl MALClient {
 
 #[cfg(test)]
 mod test {
-    use dotenv::dotenv;
     use reqwest::StatusCode;
 
     use super::*;
 
     #[tokio::test]
     async fn env_vars() {
-        dotenv().ok();
-
         let mal_cofnig = MALClient::from_env();
 
         let response = mal_cofnig
