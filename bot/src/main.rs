@@ -77,6 +77,7 @@ async fn main() {
     env_logger::init();
     
     let token = dotenv!("DISCORD_TOKEN");
+    let bot_prefix = "bl ";
     let application_id = dotenv!("DISCORD_APPLICATION_ID")
         .parse::<u64>()
         .unwrap();

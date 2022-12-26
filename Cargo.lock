@@ -138,9 +138,9 @@ name = "blenzer"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "dotenv_codegen",
  "env_logger",
  "log",
- "dotenv_codegen",
  "mal",
  "num-traits 0.2.14",
  "rand 0.8.4",
@@ -1124,6 +1124,12 @@ name = "ppv-lite86"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed0cfbc8191465bed66e1718596ee0b0b35d5ee1f41c5df2189d0fe8bde535ba"
+
+[[package]]
+name = "proc-macro-hack"
+version = "0.5.20+deprecated"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc375e1527247fe1a97d8b7156678dfe7c1af2fc075c9a4db3690ecd2a148068"
 
 [[package]]
 name = "proc-macro2"

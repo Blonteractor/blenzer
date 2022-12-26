@@ -6,5 +6,5 @@ members = [
 ]
 
 [patch.crates-io]
-serenity = { git = "https://github.com/serenity-rs/serenity", branch = "current"}
-songbird = {git = "https://github.com/serenity-rs/songbird", branch = "current"}
+serenity = { git = "https://github.com/serenity-rs/serenity", branch = "current" }
+songbird = { git = "https://github.com/serenity-rs/songbird", branch = "current" }
