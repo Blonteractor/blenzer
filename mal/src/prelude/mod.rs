@@ -16,7 +16,7 @@ pub struct BasicMalObject {
     pub title: String,
 
     #[serde(rename = "main_picture")]
-    pub cover_art: Picture,
+    pub cover_art: Option<Picture>,
     pub alternative_titles: Option<AlternativeTitles>,
 
     #[serde(rename = "start_date")]

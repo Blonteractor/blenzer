@@ -6,6 +6,8 @@ extern crate dotenv_codegen;
 
 use std::collections::HashSet;
 
+use log::{debug, error, info};
+
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
 use serenity::framework::standard::CommandError;
@@ -14,23 +16,25 @@ use serenity::framework::standard::{
     macros::{help, hook},
     Args, CommandGroup, CommandResult, DispatchError, HelpOptions, StandardFramework,
 };
+
 use serenity::model::{
     channel::Message,
     prelude::{Ready, UserId},
 };
 
+use songbird::SerenityInit;
+
 use cogs::meta::*;
+use cogs::music::*;
 use cogs::utility::*;
 use cogs::weeb::*;
-
-const BOT_PREFIX: &str = "bl ";
 
 struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, _ctx: Context, data_about_bot: Ready) {
-        println!("Client connected as {}", data_about_bot.user.name);
+        info!("Client connected as {}", data_about_bot.user.name);
     }
 }
 
@@ -49,7 +53,7 @@ async fn my_help(
 
 #[hook]
 async fn unrecognised_command_hook(_: &Context, msg: &Message, unrecognised_command_name: &str) {
-    println!(
+    debug!(
         "User {:?} tried to execute the command {:?} which doesnt exist",
         msg.author.name, unrecognised_command_name
     );
@@ -57,19 +61,21 @@ async fn unrecognised_command_hook(_: &Context, msg: &Message, unrecognised_comm
 
 #[hook]
 async fn command_error_hook(_: &Context, _: &Message, error: DispatchError) {
-    eprintln!("Error occured in command: {:?}", error)
+    error!("Error occured in command: {:?}", error)
 }
 
 #[hook]
 async fn after_hook(_: &Context, _: &Message, cmd_name: &str, error: Result<(), CommandError>) {
     //  Print out an error if it happened
     if let Err(why) = error {
-        println!("Error in {}: {:?}", cmd_name, why);
+        error!("Error in {}: {:?}", cmd_name, why);
     }
 }
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
+    
     let token = dotenv!("DISCORD_TOKEN");
     let application_id = dotenv!("DISCORD_APPLICATION_ID")
         .parse::<u64>()
@@ -77,13 +83,14 @@ async fn main() {
 
     //# Build the framework (setting prefix, command hooks, etc)
     let framework = StandardFramework::new()
-        .configure(|c| c.prefix(BOT_PREFIX))
+        .configure(|c| c.prefix(bot_prefix))
         .unrecognised_command(unrecognised_command_hook)
         .on_dispatch_error(command_error_hook)
         .after(after_hook)
         .help(&MY_HELP)
         .group(&META_GROUP)
         .group(&UTILITY_GROUP)
+        .group(&MUSIC_GROUP)
         .group(&WEEB_GROUP);
 
     //# Build the client using the framework and the token
@@ -91,11 +98,16 @@ async fn main() {
         .event_handler(Handler)
         .framework(framework)
         .application_id(application_id)
+        .register_songbird()
         .await
         .expect("Error creating client.");
 
     // Start listening for events by starting a single shard
-    if let Err(e) = client.start().await {
-        println!("An error occured while running the client: {:?}", e);
+    if let Err(e) = client
+        .start()
+        .await
+        .map_err(|why| error!("Client ended: {:?}", why))
+    {
+        error!("Error in starting client: {:?}", e);
     }
 }

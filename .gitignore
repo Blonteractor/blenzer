@@ -4,3 +4,5 @@ mal/Cargo.lock
 mal/Sample.json
 .env
 git_token.txt
+blenzer.config.js
+blenzer.log
