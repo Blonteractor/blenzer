@@ -6,7 +6,7 @@ extern crate dotenv_codegen;
 
 use std::collections::HashSet;
 
-use log::{debug, error, info};
+use log::{debug, error, info, LevelFilter};
 
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
@@ -74,13 +74,14 @@ async fn after_hook(_: &Context, _: &Message, cmd_name: &str, error: Result<(), 
 
 #[tokio::main]
 async fn main() {
-    env_logger::init();
-    
+    env_logger::Builder::from_default_env()
+        .default_format()
+        .filter_module("blenzer", LevelFilter::Info)
+        .init();
+
     let token = dotenv!("DISCORD_TOKEN");
     let bot_prefix = "bl ";
-    let application_id = dotenv!("DISCORD_APPLICATION_ID")
-        .parse::<u64>()
-        .unwrap();
+    let application_id = dotenv!("DISCORD_APPLICATION_ID").parse::<u64>().unwrap();
 
     //# Build the framework (setting prefix, command hooks, etc)
     let framework = StandardFramework::new()
